@@ -1,7 +1,7 @@
 package AAC
 
 import (
-	"utils"
+	"github.com/panda-media/muxer-fmp4/utils"
 )
 
 const (
@@ -70,8 +70,8 @@ type AACAudioSpecificConfig struct {
 	frame_length_short int
 }
 
-func parseConfigALS(reader *utils.BitReader,asc *AACAudioSpecificConfig)  {
-	if reader.BitsLeft()<112 {
+func parseConfigALS(reader *utils.BitReader, asc *AACAudioSpecificConfig) {
+	if reader.BitsLeft() < 112 {
 		return
 	}
 	if reader.ReadBits(8) != 'A' || reader.ReadBits(8) != 'L' || reader.ReadBits(8) != 'S' || reader.ReadBits(8) != 0 {
@@ -83,70 +83,70 @@ func parseConfigALS(reader *utils.BitReader,asc *AACAudioSpecificConfig)  {
 	asc.channels = reader.ReadBits(16) + 1
 }
 
-func getObjectType(reader *utils.BitReader)int  {
-	objType:=reader.ReadBits(5)
-	if AOT_ESCAPE==objType {
-		objType=32+reader.ReadBits(6)
+func getObjectType(reader *utils.BitReader) int {
+	objType := reader.ReadBits(5)
+	if AOT_ESCAPE == objType {
+		objType = 32 + reader.ReadBits(6)
 	}
 	return objType
 }
 
-func getSampleRate(reader *utils.BitReader)(sampleRateIdx,sampleRate int)  {
-	sampleRateIdx=reader.ReadBits(4)
-	if sampleRateIdx==0xf {
-		sampleRate=reader.ReadBits(24)
-	}else{
-		sampleRate= func(idx int)int {
+func getSampleRate(reader *utils.BitReader) (sampleRateIdx, sampleRate int) {
+	sampleRateIdx = reader.ReadBits(4)
+	if sampleRateIdx == 0xf {
+		sampleRate = reader.ReadBits(24)
+	} else {
+		sampleRate = func(idx int) int {
 			AACSampleRates := [16]int{96000, 88200, 64000, 48000, 44100, 32000,
-									  24000, 22050, 16000, 12000, 11025, 8000, 7350}
+				24000, 22050, 16000, 12000, 11025, 8000, 7350}
 			return AACSampleRates[idx]
 		}(sampleRateIdx)
 	}
-	return sampleRateIdx,sampleRate
+	return sampleRateIdx, sampleRate
 }
 
-func AACGetConfig(data []byte)(asc *AACAudioSpecificConfig){
-	reader:=&utils.BitReader{}
+func AACGetConfig(data []byte) (asc *AACAudioSpecificConfig) {
+	reader := &utils.BitReader{}
 	reader.Init(data)
-	asc=&AACAudioSpecificConfig{}
-	asc.object_type=getObjectType(reader)
-	asc.sampling_index,asc.sample_rate=getSampleRate(reader)
+	asc = &AACAudioSpecificConfig{}
+	asc.object_type = getObjectType(reader)
+	asc.sampling_index, asc.sample_rate = getSampleRate(reader)
 
-	asc.chan_config=reader.ReadBits(4)
-	if  asc.chan_config<8 {
-		asc.channels=func(idx int)int  {
+	asc.chan_config = reader.ReadBits(4)
+	if asc.chan_config < 8 {
+		asc.channels = func(idx int) int {
 			arr := []int{0, 1, 2, 3, 4, 5, 6, 8}
 			return arr[idx]
 		}(asc.chan_config)
 	}
 
-	asc.sbr=-1
-	asc.ps=-1
+	asc.sbr = -1
+	asc.ps = -1
 
-	if AOT_SBR==asc.object_type||
-		(AOT_PS==asc.object_type&&0==(reader.CopyBits(3)&0x03)&&0==(reader.CopyBits(9)&0x3f)){
-		if AOT_PS==asc.object_type {
-			asc.ps=1
+	if AOT_SBR == asc.object_type ||
+		(AOT_PS == asc.object_type && 0 == (reader.CopyBits(3)&0x03) && 0 == (reader.CopyBits(9)&0x3f)) {
+		if AOT_PS == asc.object_type {
+			asc.ps = 1
 		}
-		asc.ext_object_type=AOT_SBR
-		asc.sbr=1
-		asc.ext_sampling_index,asc.ext_sample_rate=getSampleRate(reader)
-		asc.object_type=getObjectType(reader)
+		asc.ext_object_type = AOT_SBR
+		asc.sbr = 1
+		asc.ext_sampling_index, asc.ext_sample_rate = getSampleRate(reader)
+		asc.object_type = getObjectType(reader)
 		if asc.object_type == AOT_ER_BSAC {
 			asc.ext_chan_config = reader.ReadBits(4)
 		}
-	}else {
-		asc.ext_object_type=AOT_NULL
-		asc.ext_sample_rate=0
+	} else {
+		asc.ext_object_type = AOT_NULL
+		asc.ext_sample_rate = 0
 	}
 
-	if AOT_ALS==asc.object_type{
+	if AOT_ALS == asc.object_type {
 		reader.ReadBits(5)
-		als:=reader.CopyBits(24)
+		als := reader.CopyBits(24)
 		if ((als>>16)&0xff) != 'A' || ((als>>8)&0xff) != 'L' || ((als)&0xff) != 'S' {
 			reader.ReadBits(24)
 		}
-		parseConfigALS(reader,asc)
+		parseConfigALS(reader, asc)
 	}
 
 	if asc.ext_object_type != AOT_SBR {
@@ -183,18 +183,17 @@ func AACGetConfig(data []byte)(asc *AACAudioSpecificConfig){
 	return
 }
 
-func (this *AACAudioSpecificConfig)ObjectType()int  {
-return this.object_type
+func (this *AACAudioSpecificConfig) ObjectType() int {
+	return this.object_type
 }
 
-func (this *AACAudioSpecificConfig)SampleRate()int  {
-	if this.ext_sample_rate>0 {
+func (this *AACAudioSpecificConfig) SampleRate() int {
+	if this.ext_sample_rate > 0 {
 		return this.ext_sample_rate
 	}
 	return this.sample_rate
 }
 
-func (this *AACAudioSpecificConfig)Channel()int  {
+func (this *AACAudioSpecificConfig) Channel() int {
 	return this.channels
 }
-
