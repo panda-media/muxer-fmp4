@@ -5,7 +5,7 @@ import (
 	"errors"
 	"encoding/binary"
 )
-
+//unixtime + 0x7c0f4700
 const (
 	TRACK_VIDEO=iota+1
 	TRACK_AUDIO
