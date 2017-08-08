@@ -22,7 +22,6 @@ const (
 	NAL_AUXILIARY_SLICE = 19
 )
 
-
 func emulation_prevention(nal []byte) []byte {
 	buf := bytes.Buffer{}
 	for i := 0; i < len(nal); i++ {

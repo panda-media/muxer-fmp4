@@ -56,23 +56,22 @@ const (
 	AACRaw            = 1
 )
 
-
 type MediaPacket struct {
 	PacketType int
-	TimeStamp uint32
-	StreamID int
-	Data []byte
+	TimeStamp  uint32
+	StreamID   int
+	Data       []byte
 }
 
-func (this *MediaPacket)Copy()(out *MediaPacket){
-	out=&MediaPacket{
-		PacketType:this.PacketType,
-		TimeStamp:this.TimeStamp,
-		StreamID:this.StreamID,
+func (this *MediaPacket) Copy() (out *MediaPacket) {
+	out = &MediaPacket{
+		PacketType: this.PacketType,
+		TimeStamp:  this.TimeStamp,
+		StreamID:   this.StreamID,
 	}
-	if len(this.Data)>0{
-		out.Data=make([]byte,len(this.Data))
-		copy(out.Data,this.Data)
+	if len(this.Data) > 0 {
+		out.Data = make([]byte, len(this.Data))
+		copy(out.Data, this.Data)
 	}
 	return
 }

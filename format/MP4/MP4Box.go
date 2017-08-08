@@ -2,49 +2,48 @@ package MP4
 
 import (
 	"bytes"
-	"errors"
 	"encoding/binary"
+	"errors"
 )
+
 //unixtime + 0x7c0f4700
 const (
-	TRACK_VIDEO=iota+1
+	TRACK_VIDEO = iota + 1
 	TRACK_AUDIO
 	TRACK_NEXT
 )
 
 const (
-	VIDE_TIME_SCALE=90000
-	AAC_SAMPLE_SIZE=1024
-	MP3_SAMPLE_SIZE=1152
+	VIDE_TIME_SCALE = 90000
+	AAC_SAMPLE_SIZE = 1024
+	MP3_SAMPLE_SIZE = 1152
 )
 
 type MP4Box struct {
-	boxType []byte
-	version byte
-	flags int
-	fullBox bool
-	boxSize uint32
+	boxType      []byte
+	version      byte
+	flags        int
+	fullBox      bool
+	boxSize      uint32
 	boxSizeLarge uint64
-	writer *bytes.Buffer
+	writer       *bytes.Buffer
 }
 
-
-func NewMP4Box(boxType string)(box *MP4Box,err error){
-	if len(boxType)!=4{
-		err= errors.New("invalid this type:"+boxType)
+func NewMP4Box(boxType string) (box *MP4Box, err error) {
+	if len(boxType) != 4 {
+		err = errors.New("invalid this type:" + boxType)
 		return
 	}
-	box=&MP4Box{}
-	box.writer=new(bytes.Buffer)
+	box = &MP4Box{}
+	box.writer = new(bytes.Buffer)
 	return
 }
 
-func (this *MP4Box)SetVersionFlags(version byte,flags int)  {
-	this.version=version
-	this.flags=flags
-	this.fullBox=true
+func (this *MP4Box) SetVersionFlags(version byte, flags int) {
+	this.version = version
+	this.flags = flags
+	this.fullBox = true
 }
-
 
 func (this *MP4Box) Flush() []byte {
 	defer func() {
@@ -103,7 +102,7 @@ func (this *MP4Box) PushBytes(data []byte) {
 	this.writer.Write(data)
 }
 
-func (this *MP4Box)PushBox(inBox *MP4Box){
-	data:=inBox.Flush()
+func (this *MP4Box) PushBox(inBox *MP4Box) {
+	data := inBox.Flush()
 	this.writer.Write(data)
 }

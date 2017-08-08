@@ -2,6 +2,7 @@ package AAC
 
 import (
 	"github.com/panda-media/muxer-fmp4/utils"
+	"strings"
 )
 
 const (
@@ -196,4 +197,49 @@ func (this *AACAudioSpecificConfig) SampleRate() int {
 
 func (this *AACAudioSpecificConfig) Channel() int {
 	return this.channels
+}
+
+func ASCForMP4(ascData []byte, useragent string) (cfg []byte) {
+	asc := AACGetConfig(ascData)
+	if len(useragent) > 0 {
+		useragent = strings.ToLower(useragent)
+	}
+	switch useragent {
+	case "firefox":
+		if asc.sampling_index >= AOT_AAC_SCALABLE {
+			asc.object_type = AOT_SBR
+			asc.ext_sampling_index = asc.sampling_index - 3
+			cfg = make([]byte, 4)
+		} else {
+			asc.object_type = AOT_AAC_LC
+			asc.ext_sampling_index = asc.sampling_index
+			cfg = make([]byte, 2)
+		}
+	case "android":
+		asc.object_type = AOT_AAC_LC
+		asc.ext_sampling_index = asc.sampling_index
+		cfg = make([]byte, 2)
+	default:
+		asc.object_type = AOT_SBR
+		asc.ext_sampling_index = asc.sampling_index
+		cfg = make([]byte, 4)
+		if asc.sampling_index >= AOT_AAC_SCALABLE {
+			asc.ext_sampling_index = asc.sampling_index - 3
+		} else if asc.chan_config == 1 {
+			asc.object_type = AOT_AAC_LC
+			asc.ext_sampling_index = asc.sampling_index
+			cfg = make([]byte, 2)
+		}
+	}
+	cfg[0] = byte(asc.object_type << 3)
+	cfg[0] |= byte((asc.sampling_index & 0xf) >> 1)
+	cfg[1] = byte((asc.sampling_index & 0xf) << 7)
+	cfg[1] |= byte((asc.chan_config & 0xf) << 3)
+	if asc.object_type == AOT_SBR {
+		cfg[1] |= byte((asc.ext_sampling_index & 0xf) >> 1)
+		cfg[2] = byte((asc.ext_sampling_index & 1) << 7)
+		cfg[2] |= (2 << 2)
+		cfg[3] = 0
+	}
+	return
 }
