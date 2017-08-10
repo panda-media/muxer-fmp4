@@ -2,7 +2,6 @@ package commonBoxes
 
 import (
 	"errors"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
 type mvhdPram struct {
@@ -14,11 +13,11 @@ type mvhdPram struct {
 	next_track_ID     uint32
 }
 
-func mvhdBox(param *mvhdPram) (box *MP4.MP4Box, err error) {
+func mvhdBox(param *mvhdPram) (box *MP4Box, err error) {
 	if nil == param {
 		return nil, errors.New("nil pointer for mvhd")
 	}
-	box, err = MP4.NewMP4Box("mvhd")
+	box, err = NewMP4Box("mvhd")
 	if err != nil {
 		return
 	}

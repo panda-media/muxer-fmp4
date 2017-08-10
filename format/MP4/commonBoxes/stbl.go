@@ -4,11 +4,10 @@ import (
 	"errors"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/H264"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
-func stblBox(media *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS) (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("stbl")
+func stblBox(media *AVPacket.MediaPacket, arrays *MOOV_ARRAYS) (box *MP4Box, err error) {
+	box, err = NewMP4Box("stbl")
 	if err != nil {
 		return
 	}
@@ -19,7 +18,7 @@ func stblBox(media *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS) (box *MP4.MP4
 	}
 	box.PushBox(stsd)
 	//stts
-	var stts_param *MP4.STTS
+	var stts_param *STTS
 	if arrays != nil {
 		stts_param = arrays.Stts
 	}
@@ -29,7 +28,7 @@ func stblBox(media *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS) (box *MP4.MP4
 	}
 	box.PushBox(stts)
 	//stsc
-	var stsc_param *MP4.STSC
+	var stsc_param *STSC
 	if arrays != nil {
 		stsc_param = arrays.Stsc
 	}
@@ -39,7 +38,7 @@ func stblBox(media *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS) (box *MP4.MP4
 	}
 	box.PushBox(stsc)
 	//stsz
-	var stsz_param *MP4.STSZ
+	var stsz_param *STSZ
 	if arrays != nil {
 		stsz_param = arrays.Stsz
 	}
@@ -49,7 +48,7 @@ func stblBox(media *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS) (box *MP4.MP4
 	}
 	box.PushBox(stsz)
 	//stco
-	var stco_param *MP4.STCO_CO64
+	var stco_param *STCO_CO64
 	if arrays != nil {
 		stco_param = arrays.StcoCo64
 	}
@@ -61,7 +60,7 @@ func stblBox(media *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS) (box *MP4.MP4
 	return
 }
 
-func stbl_stsdBox(media *AVPacket.MediaPacket) (box *MP4.MP4Box, err error) {
+func stbl_stsdBox(media *AVPacket.MediaPacket) (box *MP4Box, err error) {
 	switch media.PacketType {
 	case AVPacket.AV_PACKET_TYPE_AUDIO:
 		soundFormat := media.Data[0] >> 4

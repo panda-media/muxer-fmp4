@@ -2,11 +2,10 @@ package commonBoxes
 
 import (
 	"errors"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
-func trunBox(param *MP4.TRUN) (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("trun")
+func trunBox(param *TRUN) (box *MP4Box, err error) {
+	box, err = NewMP4Box("trun")
 	box.SetVersionFlags(param.Version, param.Tr_flags)
 	box.Push4Bytes(param.Sample_count)
 	if (param.Tr_flags & 0x1) != 0 {
@@ -22,7 +21,7 @@ func trunBox(param *MP4.TRUN) (box *MP4.MP4Box, err error) {
 	}
 
 	for e := param.Vals.Front(); e != nil; e = e.Next() {
-		v := e.Value.(*MP4.TRUN_ARRAY_FIELDS)
+		v := e.Value.(*TRUN_ARRAY_FIELDS)
 		if (param.Tr_flags & 0x100) != 0 {
 			box.Push4Bytes(v.Sample_duration)
 		}

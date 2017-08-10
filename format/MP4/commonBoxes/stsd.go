@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"github.com/panda-media/muxer-fmp4/format/AAC"
 	"github.com/panda-media/muxer-fmp4/format/H264"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
 const (
@@ -13,14 +12,14 @@ const (
 	MP4DecSpecificDescrTag = 0x05
 )
 
-func stsdH264(avc *H264.AVCDecoderConfigurationRecord, width, height int) (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("stsd")
+func stsdH264(avc *H264.AVCDecoderConfigurationRecord, width, height int) (box *MP4Box, err error) {
+	box, err = NewMP4Box("stsd")
 	if err != nil {
 		return
 	}
 	box.SetVersionFlags(0, 0)
 	box.Push4Bytes(1)
-	avc1, err := MP4.NewMP4Box("avc1")
+	avc1, err := NewMP4Box("avc1")
 	if err != nil {
 		return
 	}
@@ -43,7 +42,7 @@ func stsdH264(avc *H264.AVCDecoderConfigurationRecord, width, height int) (box *
 	avc1.Push2Bytes(0x18)
 	avc1.Push2Bytes(0xffff)
 
-	avcC, err := MP4.NewMP4Box("avcC")
+	avcC, err := NewMP4Box("avcC")
 	if err != nil {
 		return
 	}
@@ -55,15 +54,15 @@ func stsdH264(avc *H264.AVCDecoderConfigurationRecord, width, height int) (box *
 	return
 }
 
-func stsdAAC(sampleRate uint32, AudioSpecificConfig []byte) (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("stsd")
+func stsdAAC(sampleRate uint32, AudioSpecificConfig []byte) (box *MP4Box, err error) {
+	box, err = NewMP4Box("stsd")
 	if err != nil {
 		return
 	}
 	box.SetVersionFlags(0, 0)
 	box.Push4Bytes(1)
 
-	mp4a, err := MP4.NewMP4Box("mp4a")
+	mp4a, err := NewMP4Box("mp4a")
 	if err != nil {
 		return
 	}
@@ -74,7 +73,7 @@ func stsdAAC(sampleRate uint32, AudioSpecificConfig []byte) (box *MP4.MP4Box, er
 	mp4a.Push4Bytes(0)
 	mp4a.Push4Bytes(sampleRate << 16)
 
-	esds, err := MP4.NewMP4Box("esds")
+	esds, err := NewMP4Box("esds")
 	if err != nil {
 		return
 	}

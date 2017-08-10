@@ -3,7 +3,6 @@ package commonBoxes
 import (
 	"container/list"
 	"errors"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
 type SidxReference struct {
@@ -25,12 +24,12 @@ type SidxParam struct {
 	References                 *list.List
 }
 
-func SidxBox(param *SidxParam) (box *MP4.MP4Box, err error) {
+func SidxBox(param *SidxParam) (box *MP4Box, err error) {
 	if nil == param {
 		err = errors.New("nil pointer for init sidx")
 		return
 	}
-	box, err = MP4.NewMP4Box("sid	x")
+	box, err = NewMP4Box("sid	x")
 	if err != nil {
 		return
 	}

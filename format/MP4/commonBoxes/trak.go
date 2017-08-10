@@ -2,11 +2,10 @@ package commonBoxes
 
 import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
-func trakBox(packet *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS, timestamp, duration uint64) (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("trak")
+func trakBox(packet *AVPacket.MediaPacket, arrays *MOOV_ARRAYS, timestamp, duration uint64) (box *MP4Box, err error) {
+	box, err = NewMP4Box("trak")
 	if err != nil {
 		return
 	}
@@ -17,10 +16,10 @@ func trakBox(packet *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS, timestamp, d
 	param_tkhd.modification_time = timestamp
 	param_tkhd.duration = duration
 	if AVPacket.AV_PACKET_TYPE_AUDIO == packet.PacketType {
-		param_tkhd.track_ID = MP4.TRACK_AUDIO
+		param_tkhd.track_ID = TRACK_AUDIO
 		param_tkhd.bAudio = true
 	} else {
-		param_tkhd.track_ID = MP4.TRACK_VIDEO
+		param_tkhd.track_ID = TRACK_VIDEO
 		var w, h int
 		w, h, err = getVideoWidthHeight(packet)
 		if err != nil {
@@ -36,7 +35,7 @@ func trakBox(packet *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS, timestamp, d
 	box.PushBox(tkhd)
 	//mdia
 	var timeScale uint32
-	timeScale = MP4.VIDE_TIME_SCALE
+	timeScale = VIDE_TIME_SCALE
 	if AVPacket.AV_PACKET_TYPE_AUDIO == packet.PacketType {
 		timeScale, _, err = getAudioSampleRateSampleSize(packet)
 		if err != nil {

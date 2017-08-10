@@ -1,9 +1,7 @@
 package commonBoxes
 
-import "github.com/panda-media/muxer-fmp4/format/MP4"
-
-func dinfBox() (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("dinf")
+func dinfBox() (box *MP4Box, err error) {
+	box, err = NewMP4Box("dinf")
 	if err != nil {
 		return
 	}
@@ -15,8 +13,8 @@ func dinfBox() (box *MP4.MP4Box, err error) {
 	return
 }
 
-func drefBox() (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("dref")
+func drefBox() (box *MP4Box, err error) {
+	box, err = NewMP4Box("dref")
 	if err != nil {
 		return
 	}
@@ -30,8 +28,8 @@ func drefBox() (box *MP4.MP4Box, err error) {
 	return
 }
 
-func urlBox() (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("url ")
+func urlBox() (box *MP4Box, err error) {
+	box, err = NewMP4Box("url ")
 	if err != nil {
 		return
 	}

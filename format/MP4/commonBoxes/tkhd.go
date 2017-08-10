@@ -2,7 +2,6 @@ package commonBoxes
 
 import (
 	"errors"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
 type tkhdParam struct {
@@ -16,11 +15,11 @@ type tkhdParam struct {
 	height            uint32
 }
 
-func tkhdBox(param *tkhdParam) (box *MP4.MP4Box, err error) {
+func tkhdBox(param *tkhdParam) (box *MP4Box, err error) {
 	if nil == param {
 		return nil, errors.New("nil pointer for tkhd")
 	}
-	box, err = MP4.NewMP4Box("tkhd")
+	box, err = NewMP4Box("tkhd")
 	if err != nil {
 		return
 	}

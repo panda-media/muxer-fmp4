@@ -1,4 +1,4 @@
-package MP4
+package commonBoxes
 
 import (
 	"bytes"
@@ -14,9 +14,9 @@ const (
 )
 
 const (
-	VIDE_TIME_SCALE = 90000
-	VIDE_TIME_SCALE_Millisecond=1000
-	MP3_SAMPLE_SIZE = 1152
+	VIDE_TIME_SCALE             = 90000
+	VIDE_TIME_SCALE_Millisecond = 1000
+	MP3_SAMPLE_SIZE             = 1152
 )
 
 type MP4Box struct {
@@ -34,8 +34,10 @@ func NewMP4Box(boxType string) (box *MP4Box, err error) {
 		err = errors.New("invalid this type:" + boxType)
 		return
 	}
+
 	box = &MP4Box{}
 	box.writer = new(bytes.Buffer)
+	box.boxType=[]byte(boxType)
 	return
 }
 
@@ -61,11 +63,11 @@ func (this *MP4Box) Flush() []byte {
 		this.boxSize += uint32(this.writer.Len())
 	}
 	writer := bytes.Buffer{}
-	binary.Write(writer, binary.BigEndian, this.boxSize)
+	binary.Write(&writer, binary.BigEndian, &this.boxSize)
 	writer.Write(this.boxType)
 
 	if 1 == this.boxSize {
-		binary.Write(writer, binary.BigEndian, this.boxSizeLarge)
+		binary.Write(&writer, binary.BigEndian, &this.boxSizeLarge)
 	}
 	if this.fullBox {
 		writer.WriteByte(byte(this.version))
@@ -83,15 +85,15 @@ func (this *MP4Box) Flush() []byte {
 }
 
 func (this *MP4Box) Push8Bytes(data uint64) {
-	binary.Write(this.writer, binary.BigEndian, data)
+	binary.Write(this.writer, binary.BigEndian, &data)
 }
 
 func (this *MP4Box) Push4Bytes(data uint32) {
-	binary.Write(this.writer, binary.BigEndian, data)
+	binary.Write(this.writer, binary.BigEndian, &data)
 }
 
 func (this *MP4Box) Push2Bytes(data uint16) {
-	binary.Write(this.writer, binary.BigEndian, data)
+	binary.Write(this.writer, binary.BigEndian, &data)
 }
 
 func (this *MP4Box) PushByte(data byte) {

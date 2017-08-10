@@ -65,6 +65,14 @@ func (this *FMP4Muxer)GetInitSegment()(segData []byte,err error){
 	}
 	buf.Write(ftyp)
 	//moov
+	moov,err:=commonBoxes.Box_moov_Data(0,this.audioHeader,this.videoHeader,nil,nil)
+	if err!=nil{
+		err=errors.New(fmt.Sprintf("create moov failed:%s",err.Error()))
+		return
+	}
+	buf.Write(moov)
+
+	segData=buf.Bytes()
 
 	return
 }

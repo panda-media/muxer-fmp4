@@ -1,7 +1,6 @@
 package commonBoxes
 
 import (
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
 type trexParam struct {
@@ -12,20 +11,22 @@ type trexParam struct {
 	default_sample_flags             uint32
 }
 
-func mvexBox(audioParam, videoParam *trexParam) (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("mvex")
+func mvexBox(audioParam, videoParam *trexParam) (box *MP4Box, err error) {
+	box, err = NewMP4Box("mvex")
 	if err != nil {
 		return
 	}
 	if nil != audioParam {
-		audioTrex, err := trexBox(audioParam)
+		var audioTrex *MP4Box
+		audioTrex, err = trexBox(audioParam)
 		if err != nil {
 			return
 		}
 		box.PushBox(audioTrex)
 	}
 	if nil != videoParam {
-		videoTrex, err := trexBox(videoParam)
+		var videoTrex *MP4Box
+		videoTrex, err = trexBox(videoParam)
 		if err != nil {
 			return
 		}
@@ -34,8 +35,8 @@ func mvexBox(audioParam, videoParam *trexParam) (box *MP4.MP4Box, err error) {
 	return
 }
 
-func trexBox(param *trexParam) (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("trex")
+func trexBox(param *trexParam) (box *MP4Box, err error) {
+	box, err = NewMP4Box("trex")
 	if err != nil {
 		return
 	}

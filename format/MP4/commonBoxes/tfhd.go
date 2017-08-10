@@ -1,6 +1,5 @@
 package commonBoxes
 
-import "github.com/panda-media/muxer-fmp4/format/MP4"
 
 type tfhdParam struct {
 	Tf_flags                 int
@@ -12,8 +11,8 @@ type tfhdParam struct {
 	Default_sample_flags     uint32
 }
 
-func tfhdBox(param *tfhdParam) (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("tfhd")
+func tfhdBox(param *tfhdParam) (box *MP4Box, err error) {
+	box, err = NewMP4Box("tfhd")
 	if err != nil {
 		return
 	}

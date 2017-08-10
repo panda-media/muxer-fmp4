@@ -6,15 +6,14 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/AAC"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/H264"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 	"strconv"
 	"time"
 )
 
-func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MP4.MOOV_ARRAYS) (box *MP4.MP4Box, err error) {
+func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MOOV_ARRAYS) (box *MP4Box, err error) {
 
 	timestamp := uint64(time.Now().Unix() + 0x7c0f4700)
-	box, err = MP4.NewMP4Box("moov")
+	box, err = NewMP4Box("moov")
 	if err != nil {
 		return
 	}
@@ -23,8 +22,8 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 		creation_time:     timestamp,
 		modification_time: timestamp,
 		duration:          durationMS,
-		timescale:         MP4.VIDE_TIME_SCALE_Millisecond,
-		next_track_ID:     MP4.TRACK_NEXT}
+		timescale:         VIDE_TIME_SCALE_Millisecond,
+		next_track_ID:     TRACK_NEXT}
 	mvhd, err := mvhdBox(param_mvhd)
 	if err != nil {
 		return
@@ -42,7 +41,7 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 	var param_trex_video *trexParam
 	if audioHeader != nil {
 		param_trex_audio = &trexParam{
-			MP4.TRACK_AUDIO,
+			TRACK_AUDIO,
 			1,
 			audioSampleRate,
 			0,
@@ -51,7 +50,7 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 	}
 	if videoHeader != nil {
 		param_trex_video = &trexParam{
-			MP4.TRACK_VIDEO,
+			TRACK_VIDEO,
 			1,
 			0x3e8,
 			0,
@@ -65,8 +64,8 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 	box.PushBox(mvex)
 	//track
 	if audioHeader != nil {
-		duration := durationMS * uint64(audioSampleRate) / MP4.VIDE_TIME_SCALE_Millisecond
-		var trak *MP4.MP4Box
+		duration := durationMS * uint64(audioSampleRate) / VIDE_TIME_SCALE_Millisecond
+		var trak *MP4Box
 		trak, err = trakBox(audioHeader, arraysAudio, timestamp, duration)
 		if err != nil {
 			return
@@ -75,8 +74,8 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 	}
 
 	if videoHeader != nil {
-		duration := durationMS * MP4.VIDE_TIME_SCALE / MP4.VIDE_TIME_SCALE_Millisecond
-		var trak *MP4.MP4Box
+		duration := durationMS * VIDE_TIME_SCALE / VIDE_TIME_SCALE_Millisecond
+		var trak *MP4Box
 		trak, err = trakBox(videoHeader, arraysVideo, timestamp, duration)
 		if err != nil {
 			return
@@ -87,7 +86,7 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 	return
 }
 
-func Box_moov_Data(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MP4.MOOV_ARRAYS) (data []byte, err error) {
+func Box_moov_Data(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MOOV_ARRAYS) (data []byte, err error) {
 	if nil == audioHeader && nil == videoHeader {
 		err = errors.New("no audio and audio header")
 		return

@@ -1,9 +1,7 @@
 package commonBoxes
 
-import "github.com/panda-media/muxer-fmp4/format/MP4"
-
-func mfhdBox(sequence_number uint32) (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("mhfd")
+func mfhdBox(sequence_number uint32) (box *MP4Box, err error) {
+	box, err = NewMP4Box("mhfd")
 	if err != nil {
 		return
 	}

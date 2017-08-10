@@ -2,7 +2,6 @@ package commonBoxes
 
 import (
 	"errors"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
 //time scale for this media
@@ -15,11 +14,11 @@ type mdhdParam struct {
 	duration          uint64
 }
 
-func mdhdBox(param *mdhdParam) (box *MP4.MP4Box, err error) {
+func mdhdBox(param *mdhdParam) (box *MP4Box, err error) {
 	if nil == param {
 		return nil, errors.New("nil pointer for mdhd")
 	}
-	box, err = MP4.NewMP4Box("mdhd")
+	box, err = NewMP4Box("mdhd")
 	if err != nil {
 		return
 	}

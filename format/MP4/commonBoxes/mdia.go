@@ -2,11 +2,10 @@ package commonBoxes
 
 import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
-func mdiaBox(packet *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS, timestamp uint64, timescale uint32) (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("mdia")
+func mdiaBox(packet *AVPacket.MediaPacket, arrays *MOOV_ARRAYS, timestamp uint64, timescale uint32) (box *MP4Box, err error) {
+	box, err = NewMP4Box("mdia")
 	if err != nil {
 		return
 	}
@@ -21,18 +20,18 @@ func mdiaBox(packet *AVPacket.MediaPacket, arrays *MP4.MOOV_ARRAYS, timestamp ui
 		return
 	}
 	box.PushBox(mdhd)
-
+	//hdlr
 	hdlr, err := hdlrBox(packet.PacketType == AVPacket.AV_PACKET_TYPE_AUDIO)
 	if err != nil {
 		return
 	}
 	box.PushBox(hdlr)
-
-	stbl, err := stblBox(packet, arrays)
-	if err != nil {
+	//minf
+	minf,err:=minfBox(packet,arrays)
+	if err!=nil{
 		return
 	}
+	box.PushBox(minf)
 
-	box.PushBox(stbl)
 	return
 }

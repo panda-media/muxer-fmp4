@@ -1,9 +1,7 @@
 package commonBoxes
 
-import "github.com/panda-media/muxer-fmp4/format/MP4"
-
-func ftypBox() (box *MP4.MP4Box, err error) {
-	box, err = MP4.NewMP4Box("ftyp")
+func ftypBox() (box *MP4Box, err error) {
+	box, err = NewMP4Box("ftyp")
 	box.PushBytes([]byte("iso5"))
 	box.Push4Bytes(1)
 	box.PushBytes([]byte("iso5"))
