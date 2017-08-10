@@ -56,6 +56,10 @@ const (
 	AOT_USAC                        ///< N                       Unified Speech and Audio Coding
 )
 
+const (
+	SAMPLE_SIZE=1024
+)
+
 type AACAudioSpecificConfig struct {
 	object_type        int
 	sampling_index     int

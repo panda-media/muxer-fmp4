@@ -5,10 +5,6 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
-type TimeToSampleBox struct {
-	SampleCount uint32
-	SampleDelta uint32
-}
 
 func sttsBox(scd *list.List) (box *MP4.MP4Box, err error) {
 	box, err = MP4.NewMP4Box("stts")
@@ -21,7 +17,7 @@ func sttsBox(scd *list.List) (box *MP4.MP4Box, err error) {
 
 	if entry_count > 0 {
 		for e := scd.Front(); e != nil; e = e.Next() {
-			v := e.Value.(*TimeToSampleBox)
+			v := e.Value.(*MP4.TimeToSampleVal)
 			box.Push4Bytes(v.SampleCount)
 			box.Push4Bytes(v.SampleDelta)
 		}

@@ -15,7 +15,6 @@ const (
 
 const (
 	VIDE_TIME_SCALE = 90000
-	AAC_SAMPLE_SIZE = 1024
 	MP3_SAMPLE_SIZE = 1152
 )
 
