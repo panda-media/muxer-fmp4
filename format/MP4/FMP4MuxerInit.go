@@ -8,13 +8,13 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/MP4/commonBoxes"
 )
 
-func NewMP4Muxer()*MP4Muxer{
-	muxer:=new(MP4Muxer)
+func NewMP4Muxer()*FMP4Muxer {
+	muxer:=new(FMP4Muxer)
 	return muxer
 }
 
 
-func (this *MP4Muxer)SetAudioHeader(packet *AVPacket.MediaPacket)(err error){
+func (this *FMP4Muxer)SetAudioHeader(packet *AVPacket.MediaPacket)(err error){
 	if nil==packet{
 		return errors.New("nil audio header")
 	}
@@ -33,7 +33,7 @@ func (this *MP4Muxer)SetAudioHeader(packet *AVPacket.MediaPacket)(err error){
 }
 
 
-func (this *MP4Muxer)SetVideoHeader(packet *AVPacket.MediaPacket)(err error){
+func (this *FMP4Muxer)SetVideoHeader(packet *AVPacket.MediaPacket)(err error){
 	if nil==packet{
 		return errors.New("nil video header")
 	}
@@ -55,7 +55,7 @@ func (this *MP4Muxer)SetVideoHeader(packet *AVPacket.MediaPacket)(err error){
 	return
 }
 
-func (this *MP4Muxer)GetInitSegment()(segData []byte,err error){
+func (this *FMP4Muxer)GetInitSegment()(segData []byte,err error){
 	buf:=bytes.Buffer{}
 	//ftyp
 	ftyp,err:=commonBoxes.Box_ftyp_Data()

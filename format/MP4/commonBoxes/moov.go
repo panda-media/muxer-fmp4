@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/panda-media/muxer-fmp4/format/AAC"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
-	"github.com/panda-media/muxer-fmp4/format/MP4"
-	"time"
-	"strconv"
 	"github.com/panda-media/muxer-fmp4/format/H264"
+	"github.com/panda-media/muxer-fmp4/format/MP4"
+	"strconv"
+	"time"
 )
 
-func moovBox(audioHeader, videoHeader *AVPacket.MediaPacket) (box *MP4.MP4Box, err error) {
+func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MP4.MOOV_ARRAYS) (box *MP4.MP4Box, err error) {
 
 	timestamp := uint64(time.Now().Unix() + 0x7c0f4700)
 	box, err = MP4.NewMP4Box("moov")
@@ -19,11 +19,11 @@ func moovBox(audioHeader, videoHeader *AVPacket.MediaPacket) (box *MP4.MP4Box, e
 		return
 	}
 	//mvhd
-	param_mvhd := &mvhdPram{version: 0,
+	param_mvhd := &mvhdPram{version: 1,
 		creation_time:     timestamp,
 		modification_time: timestamp,
-		duration:          0,
-		timescale:         MP4.VIDE_TIME_SCALE,
+		duration:          durationMS,
+		timescale:         MP4.VIDE_TIME_SCALE_Millisecond,
 		next_track_ID:     MP4.TRACK_NEXT}
 	mvhd, err := mvhdBox(param_mvhd)
 	if err != nil {
@@ -64,16 +64,35 @@ func moovBox(audioHeader, videoHeader *AVPacket.MediaPacket) (box *MP4.MP4Box, e
 	}
 	box.PushBox(mvex)
 	//track
+	if audioHeader != nil {
+		duration := durationMS * uint64(audioSampleRate) / MP4.VIDE_TIME_SCALE_Millisecond
+		var trak *MP4.MP4Box
+		trak, err = trakBox(audioHeader, arraysAudio, timestamp, duration)
+		if err != nil {
+			return
+		}
+		box.PushBox(trak)
+	}
+
+	if videoHeader != nil {
+		duration := durationMS * MP4.VIDE_TIME_SCALE / MP4.VIDE_TIME_SCALE_Millisecond
+		var trak *MP4.MP4Box
+		trak, err = trakBox(videoHeader, arraysVideo, timestamp, duration)
+		if err != nil {
+			return
+		}
+		box.PushBox(trak)
+	}
 
 	return
 }
 
-func Box_moov_Data(audioHeader, videoHeader *AVPacket.MediaPacket) (data []byte, err error) {
+func Box_moov_Data(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MP4.MOOV_ARRAYS) (data []byte, err error) {
 	if nil == audioHeader && nil == videoHeader {
 		err = errors.New("no audio and audio header")
 		return
 	}
-	box, err := moovBox(audioHeader, videoHeader)
+	box, err := moovBox(durationMS, audioHeader, videoHeader, arraysAudio, arraysVideo)
 	if err != nil {
 		return
 	}
@@ -96,27 +115,27 @@ func getAudioSampleRateSampleSize(audioHeader *AVPacket.MediaPacket) (sampleRate
 	return
 }
 
-func getVideoWidthHeight(videoHeader *AVPacket.MediaPacket)(width,height int,err error){
-	videoCodec:=videoHeader.Data[0]&0xf
+func getVideoWidthHeight(videoHeader *AVPacket.MediaPacket) (width, height int, err error) {
+	videoCodec := videoHeader.Data[0] & 0xf
 	switch videoCodec {
 	case AVPacket.CodecID_AVC:
-		FrameType:=videoHeader.Data[0]>>4
-		if FrameType!=1{
-			err=errors.New("not a key frame avc")
+		FrameType := videoHeader.Data[0] >> 4
+		if FrameType != 1 {
+			err = errors.New("not a key frame avc")
 			return
 		}
 		var avc *H264.AVCDecoderConfigurationRecord
-		avc,err=H264.DecodeAVC(videoHeader.Data[5:])
-		if err!=nil{
+		avc, err = H264.DecodeAVC(videoHeader.Data[5:])
+		if err != nil {
 			return
 		}
-		if avc.SPS!=nil&&avc.SPS.Len()>0{
-			sps:=avc.SPS.Front().Value.([]byte)
-			width,height,_,_,_,_=H264.DecodeSPS(sps)
+		if avc.SPS != nil && avc.SPS.Len() > 0 {
+			sps := avc.SPS.Front().Value.([]byte)
+			width, height, _, _, _, _ = H264.DecodeSPS(sps)
 		}
 		return
 	default:
-		err=errors.New("not support video type"+strconv.Itoa(int(videoCodec)))
+		err = errors.New("not support video type" + strconv.Itoa(int(videoCodec)))
 		return
 	}
 	return

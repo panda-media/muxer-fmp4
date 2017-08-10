@@ -11,11 +11,11 @@ func ftypBox() (box *MP4.MP4Box, err error) {
 	return
 }
 
-func Box_ftyp_Data()(data []byte,err error){
-	box,err:=ftypBox()
-	if err!=nil{
+func Box_ftyp_Data() (data []byte, err error) {
+	box, err := ftypBox()
+	if err != nil {
 		return
 	}
-	data=box.Flush()
+	data = box.Flush()
 	return
 }

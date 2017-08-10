@@ -57,7 +57,7 @@ const (
 )
 
 const (
-	SAMPLE_SIZE=1024
+	SAMPLE_SIZE = 1024
 )
 
 type AACAudioSpecificConfig struct {

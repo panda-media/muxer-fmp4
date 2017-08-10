@@ -9,7 +9,7 @@ type TimeToSampleVal struct {
 	SampleDelta uint32
 }
 type STTS struct {
-	Entry_data *list.List//*TimeToSampleVal
+	Values *list.List //*TimeToSampleVal
 }
 //stsc
 
@@ -19,12 +19,13 @@ type SampleToChunkVal struct {
 	Sample_description_index uint32
 }
 type STSC struct {
-	Entry_data *list.List//*SampleToChunkVal
+	Values *list.List //*SampleToChunkVal
 }
 
 //stsz  uint32
 type STSZ struct {
-	Entry_data *list.List//uint32
+	SampleSize uint32
+	Vaules *list.List //uint32
 }
 
 //stco uint32 co64 uint64
@@ -32,7 +33,13 @@ type STCO_CO64 struct {
 	USE_64 bool
 	Chunk_offset *list.List//
 }
-
+//moov needed
+type MOOV_ARRAYS struct {
+	Stts *STTS
+	Stsc *STSC
+	Stsz *STSZ
+	StcoCo64 *STCO_CO64
+}
 //sidx
 //trun
 

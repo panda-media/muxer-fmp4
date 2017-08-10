@@ -1,12 +1,11 @@
 package commonBoxes
 
 import (
-	"container/list"
 	"github.com/panda-media/muxer-fmp4/format/MP4"
 )
 
-func stco_co64(chunkoffsets *list.List, co64 bool) (box *MP4.MP4Box, err error) {
-	if co64 {
+func stco_co64(param *MP4.STCO_CO64) (box *MP4.MP4Box, err error) {
+	if param.USE_64 {
 		box, err = MP4.NewMP4Box("co64")
 		if err != nil {
 			return
@@ -19,18 +18,18 @@ func stco_co64(chunkoffsets *list.List, co64 bool) (box *MP4.MP4Box, err error) 
 	}
 	box.SetVersionFlags(0, 0)
 	entry_count := uint32(0)
-	if chunkoffsets != nil {
-		entry_count = uint32(chunkoffsets.Len())
+	if param.Chunk_offset != nil {
+		entry_count = uint32(param.Chunk_offset.Len())
 	}
 	box.Push4Bytes(entry_count)
 
 	if entry_count > 0 {
-		if co64 {
-			for e := chunkoffsets.Front(); e != nil; e = e.Next() {
+		if param.USE_64 {
+			for e := param.Chunk_offset.Front(); e != nil; e = e.Next() {
 				box.Push8Bytes(e.Value.(uint64))
 			}
 		} else {
-			for e := chunkoffsets.Front(); e != nil; e = e.Next() {
+			for e := param.Chunk_offset.Front(); e != nil; e = e.Next() {
 				box.Push4Bytes(e.Value.(uint32))
 			}
 		}
