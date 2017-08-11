@@ -62,13 +62,15 @@ func (this *FMP4Muxer)sliceKeyFrame(){
 
 	sidxData:=commonBoxes.SIDX_REFERENCE{}
 	sidxData.Reference_type=0;
-	//sidxData.Referenced_size;//moof+mdat?
+	//sidxData.Referenced_size;//moof+mdat
 	sidxData.Subsegment_duration=0
 	if this.sidx.Reference_count==0{
 		sidxData.Starts_with_SAP=1
 	}
-	sidxData.SAP_type=1
-	//sidxData.SAP_delta_time=?
+	//aways 1,key frame start
+	sidxData.Starts_with_SAP=1
+	sidxData.SAP_type=0
+	sidxData.SAP_delta_time=0
 	this.sidx.References.PushBack(sidxData)
 	this.sidx.Reference_count=uint16(this.sidx.References.Len())
 }
