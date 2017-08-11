@@ -44,6 +44,25 @@ type MOOV_ARRAYS struct {
 }
 
 //sidx
+
+type SIDX_REFERENCE struct {
+	Reference_type      byte
+	Referenced_size     uint32
+	Subsegment_duration uint32
+	Starts_with_SAP     byte
+	SAP_type            byte
+	SAP_delta_time      uint32
+}
+
+type SIDX struct {
+	Version                    byte
+	Reference_ID               uint32
+	TimeScale                  uint32
+	Earliest_presentation_time uint64
+	First_offset               uint64
+	Reference_count            uint16
+	References                 *list.List
+}
 //trun
 
 type TRUN_ARRAY_FIELDS struct {

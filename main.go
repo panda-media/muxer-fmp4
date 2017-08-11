@@ -3,15 +3,15 @@ package main
 import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/MP4"
-	"mediaTypes/flv"
-	"os"
 	"logger"
+	"mediaTypes/flv"
 	"mediaTypes/mp4"
+	"os"
 )
 
 func main() {
 	var d byte
-	d=0xe1
+	d = 0xe1
 	logger.LOGD(d)
 	TestFMP4FromFlvFile("muxer-fmp4/111.flv")
 	TestOldFMP4("muxer-fmp4/111.flv")
@@ -25,9 +25,9 @@ func TestFMP4FromFlvFile(fileName string) {
 	tag, _ := reader.GetNextTag()
 
 	pkt := TagToAVPacket(tag)
-	for pkt.PacketType!=AVPacket.AV_PACKET_TYPE_VIDEO{
-		tag,_=reader.GetNextTag()
-		pkt=TagToAVPacket(tag)
+	for pkt.PacketType != AVPacket.AV_PACKET_TYPE_VIDEO {
+		tag, _ = reader.GetNextTag()
+		pkt = TagToAVPacket(tag)
 	}
 	if pkt.PacketType == AVPacket.AV_PACKET_TYPE_VIDEO {
 		mux := &MP4.FMP4Muxer{}
@@ -37,7 +37,7 @@ func TestFMP4FromFlvFile(fileName string) {
 			return
 		}
 		fp, err := os.Create("vh.mp4")
-		if err!=nil{
+		if err != nil {
 			logger.LOGE(err.Error())
 		}
 		defer fp.Close()
@@ -55,21 +55,21 @@ func TagToAVPacket(tag *flv.FlvTag) (pkt *AVPacket.MediaPacket) {
 	return
 }
 
-func TestOldFMP4(fileName string){
+func TestOldFMP4(fileName string) {
 	reader := flv.FlvFileReader{}
 	reader.Init(fileName)
 	defer reader.Close()
 	tag, _ := reader.GetNextTag()
 	pkt := TagToAVPacket(tag)
-	for pkt.PacketType!=AVPacket.AV_PACKET_TYPE_AUDIO{
-		tag,_=reader.GetNextTag()
-		pkt=TagToAVPacket(tag)
+	for pkt.PacketType != AVPacket.AV_PACKET_TYPE_AUDIO {
+		tag, _ = reader.GetNextTag()
+		pkt = TagToAVPacket(tag)
 	}
 	if pkt.PacketType == AVPacket.AV_PACKET_TYPE_AUDIO {
-		creater:=&mp4.FMP4Creater{}
-		slice:=creater.AddFlvTag(tag)
+		creater := &mp4.FMP4Creater{}
+		slice := creater.AddFlvTag(tag)
 		fp, err := os.Create("ahold.mp4")
-		if err!=nil{
+		if err != nil {
 			logger.LOGE(err.Error())
 		}
 		defer fp.Close()

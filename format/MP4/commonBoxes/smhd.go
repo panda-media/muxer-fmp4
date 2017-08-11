@@ -1,6 +1,5 @@
 package commonBoxes
 
-
 func smhdBox() (box *MP4Box, err error) {
 	box, err = NewMP4Box("smhd")
 	if err != nil {

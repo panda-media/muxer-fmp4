@@ -1,13 +1,12 @@
 package commonBoxes
 
-
 func stscBox(param *STSC) (box *MP4Box, err error) {
 	box, err = NewMP4Box("stsc")
 	if err != nil {
 		return
 	}
 	entry_count := uint32(0)
-	if param!=nil&&param.Values != nil {
+	if param != nil && param.Values != nil {
 		entry_count = uint32(param.Values.Len())
 	}
 	box.Push4Bytes(entry_count)

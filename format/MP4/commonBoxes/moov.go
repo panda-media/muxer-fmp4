@@ -6,9 +6,9 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/AAC"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/H264"
+	"logger"
 	"strconv"
 	"time"
-	"logger"
 )
 
 func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MOOV_ARRAYS) (box *MP4Box, err error) {
@@ -32,7 +32,7 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 	box.PushBox(mvhd)
 	var audioSampleRate uint32
 	if audioHeader != nil {
-		audioSampleRate, _, err = getAudioSampleRateSampleSize(audioHeader)
+		audioSampleRate, _, err = GetAudioSampleRateSampleSize(audioHeader)
 		if err != nil {
 			return
 		}
@@ -101,7 +101,7 @@ func Box_moov_Data(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPa
 	return
 }
 
-func getAudioSampleRateSampleSize(audioHeader *AVPacket.MediaPacket) (sampleRate, sampleSize uint32, err error) {
+func GetAudioSampleRateSampleSize(audioHeader *AVPacket.MediaPacket) (sampleRate, sampleSize uint32, err error) {
 	//aac only
 	soundFormat := audioHeader.Data[0] >> 4
 	switch soundFormat {

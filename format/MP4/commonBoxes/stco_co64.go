@@ -1,8 +1,7 @@
 package commonBoxes
 
-
 func stco_co64(param *STCO_CO64) (box *MP4Box, err error) {
-	if param!=nil&&param.USE_64 {
+	if param != nil && param.USE_64 {
 		box, err = NewMP4Box("co64")
 		if err != nil {
 			return
@@ -15,7 +14,7 @@ func stco_co64(param *STCO_CO64) (box *MP4Box, err error) {
 	}
 	box.SetVersionFlags(0, 0)
 	entry_count := uint32(0)
-	if param!=nil&&param.Chunk_offset != nil {
+	if param != nil && param.Chunk_offset != nil {
 		entry_count = uint32(param.Chunk_offset.Len())
 	}
 	box.Push4Bytes(entry_count)

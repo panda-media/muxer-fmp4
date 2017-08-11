@@ -6,7 +6,7 @@ func sttsBox(param *STTS) (box *MP4Box, err error) {
 	box, err = NewMP4Box("stts")
 	box.SetVersionFlags(0, 0)
 	entry_count := uint32(0)
-	if param!=nil&&param.Values != nil {
+	if param != nil && param.Values != nil {
 		fmt.Println(param)
 		entry_count = uint32(param.Values.Len())
 	}

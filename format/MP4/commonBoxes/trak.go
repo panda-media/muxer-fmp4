@@ -37,7 +37,7 @@ func trakBox(packet *AVPacket.MediaPacket, arrays *MOOV_ARRAYS, timestamp, durat
 	var timeScale uint32
 	timeScale = VIDE_TIME_SCALE
 	if AVPacket.AV_PACKET_TYPE_AUDIO == packet.PacketType {
-		timeScale, _, err = getAudioSampleRateSampleSize(packet)
+		timeScale, _, err = GetAudioSampleRateSampleSize(packet)
 		if err != nil {
 			return
 		}

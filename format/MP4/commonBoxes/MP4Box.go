@@ -37,7 +37,7 @@ func NewMP4Box(boxType string) (box *MP4Box, err error) {
 
 	box = &MP4Box{}
 	box.writer = new(bytes.Buffer)
-	box.boxType=[]byte(boxType)
+	box.boxType = []byte(boxType)
 	return
 }
 

@@ -1,30 +1,11 @@
 package commonBoxes
 
 import (
-	"container/list"
 	"errors"
 )
 
-type SidxReference struct {
-	Reference_type      byte
-	Referenced_size     uint32
-	Subsegment_duration uint32
-	Starts_with_SAP     byte
-	SAP_type            byte
-	SAP_delta_time      uint32
-}
 
-type SidxParam struct {
-	Version                    byte
-	Reference_ID               uint32
-	TimeScale                  uint32
-	Earliest_presentation_time uint64
-	First_offset               uint64
-	Reference_count            uint16
-	References                 *list.List
-}
-
-func SidxBox(param *SidxParam) (box *MP4Box, err error) {
+func SidxBox(param *SIDX) (box *MP4Box, err error) {
 	if nil == param {
 		err = errors.New("nil pointer for init sidx")
 		return
@@ -48,7 +29,7 @@ func SidxBox(param *SidxParam) (box *MP4Box, err error) {
 	box.Push2Bytes(param.Reference_count)
 
 	for e := param.References.Front(); e != nil; e = e.Next() {
-		v := e.Value.(*SidxReference)
+		v := e.Value.(*SIDX_REFERENCE)
 		box.Push4Bytes(((uint32(v.Reference_type) << 31) | v.Referenced_size))
 		box.Push4Bytes(v.Subsegment_duration)
 		box.Push4Bytes((uint32(v.Starts_with_SAP) << 31) | ((uint32(v.SAP_type)) << 28) | v.SAP_delta_time)

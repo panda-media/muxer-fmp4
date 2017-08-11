@@ -67,7 +67,7 @@ func stbl_stsdBox(media *AVPacket.MediaPacket) (box *MP4Box, err error) {
 		switch soundFormat {
 		case AVPacket.SoundFormat_AAC:
 			var sampleRate uint32
-			sampleRate, _, err = getAudioSampleRateSampleSize(media)
+			sampleRate, _, err = GetAudioSampleRateSampleSize(media)
 			if err != nil {
 				return
 			}

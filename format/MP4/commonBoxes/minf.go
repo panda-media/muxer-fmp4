@@ -5,7 +5,7 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 )
 
-func minfBox(packet *AVPacket.MediaPacket,arrays *MOOV_ARRAYS) (box *MP4Box, err error) {
+func minfBox(packet *AVPacket.MediaPacket, arrays *MOOV_ARRAYS) (box *MP4Box, err error) {
 	box, err = NewMP4Box("minf")
 	if err != nil {
 		return
@@ -35,7 +35,7 @@ func minfBox(packet *AVPacket.MediaPacket,arrays *MOOV_ARRAYS) (box *MP4Box, err
 	}
 	box.PushBox(dinf)
 
-	stbl, err := stblBox(packet,arrays)
+	stbl, err := stblBox(packet, arrays)
 	if err != nil {
 		return
 	}

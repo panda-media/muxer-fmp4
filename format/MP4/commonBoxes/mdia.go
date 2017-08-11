@@ -27,8 +27,8 @@ func mdiaBox(packet *AVPacket.MediaPacket, arrays *MOOV_ARRAYS, timestamp uint64
 	}
 	box.PushBox(hdlr)
 	//minf
-	minf,err:=minfBox(packet,arrays)
-	if err!=nil{
+	minf, err := minfBox(packet, arrays)
+	if err != nil {
 		return
 	}
 	box.PushBox(minf)
