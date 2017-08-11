@@ -8,6 +8,7 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/H264"
 	"strconv"
 	"time"
+	"logger"
 )
 
 func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MOOV_ARRAYS) (box *MP4Box, err error) {
@@ -93,6 +94,7 @@ func Box_moov_Data(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPa
 	}
 	box, err := moovBox(durationMS, audioHeader, videoHeader, arraysAudio, arraysVideo)
 	if err != nil {
+		logger.LOGE(err.Error())
 		return
 	}
 	data = box.Flush()

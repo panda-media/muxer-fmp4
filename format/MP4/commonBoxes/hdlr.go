@@ -2,7 +2,7 @@ package commonBoxes
 
 //true for audio,false for video
 func hdlrBox(bAudio bool) (box *MP4Box, err error) {
-	box, err = NewMP4Box("mdhd")
+	box, err = NewMP4Box("hdlr")
 	if err != nil {
 		return
 	}

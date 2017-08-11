@@ -34,13 +34,15 @@ func (this *AVCDecoderConfigurationRecord) AVCData() []byte {
 	writeSizeDataList(writer, this.SPS)
 	writer.WriteByte(byte(this.NumOfPictureParameterSets))
 	writeSizeDataList(writer, this.PPS)
-	if this.AVCProfileIndication == 100 || this.AVCProfileIndication == 110 ||
-		this.AVCProfileIndication == 122 || this.AVCProfileIndication == 144 {
-		writer.WriteByte(0xfc | this.Chroma_format_idc)
-		writer.WriteByte(0xf8 | this.Bit_depth_luma_minus8)
-		writer.WriteByte(0xf8 | this.Bit_depth_chroma_minus8)
-		writer.WriteByte(byte(this.NumOfSequenceParameterSetExt))
-		writeSizeDataList(writer, this.SequenceParameterSetExt)
+	if this.Chroma_format_idc!=0||this.NumOfSequenceParameterSetExt!=0{
+		if this.AVCProfileIndication == 100 || this.AVCProfileIndication == 110 ||
+			this.AVCProfileIndication == 122 || this.AVCProfileIndication == 144 {
+			writer.WriteByte(0xfc | this.Chroma_format_idc)
+			writer.WriteByte(0xf8 | this.Bit_depth_luma_minus8)
+			writer.WriteByte(0xf8 | this.Bit_depth_chroma_minus8)
+			writer.WriteByte(byte(this.NumOfSequenceParameterSetExt))
+			writeSizeDataList(writer, this.SequenceParameterSetExt)
+		}
 	}
 	return writer.Bytes()
 }
@@ -133,6 +135,7 @@ func DecodeAVC(avcData []byte) (avc *AVCDecoderConfigurationRecord, err error) {
 		avc.AVCProfileIndication == 122 || avc.AVCProfileIndication == 144 {
 		data, err = readData(reader, 4)
 		if err != nil {
+			err=nil
 			return
 		}
 		avc.Chroma_format_idc = data[0] & 3
