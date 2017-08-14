@@ -1,6 +1,6 @@
 package commonBoxes
 
-func tfdt(version byte, baseMediaDecodeTime uint64) (box *MP4Box, err error) {
+func tfdtBox(version byte, baseMediaDecodeTime uint64) (box *MP4Box, err error) {
 	box, err = NewMP4Box("tfdt")
 	if err != nil {
 		return

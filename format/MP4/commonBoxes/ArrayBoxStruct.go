@@ -80,3 +80,13 @@ type TRUN struct {
 	First_sample_flags uint32
 	Vals               *list.List //*TRUN_ARRAY_FIELDS
 }
+
+func (t *TRUN)Copy()(out *TRUN){
+	out=&TRUN{t.Version,
+	t.Tr_flags,
+	t.Sample_count,
+	t.Data_offset,
+	t.First_sample_flags,
+	t.Vals}
+	return
+}

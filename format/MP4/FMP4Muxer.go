@@ -13,15 +13,20 @@ const (
 )
 
 type FMP4Muxer struct {
-	audioHeader      *AVPacket.MediaPacket
-	videoHeader      *AVPacket.MediaPacket
-	sequence_numberA uint32 //1 base
-	sequence_numberV uint32 //1 base
-	trunAudio *commonBoxes.TRUN
-	trunVideo *commonBoxes.TRUN
-	media_data *bytes.Buffer
-	sidx *commonBoxes.SIDX
-	timescale uint32
-	timeBeginMS uint32
-	timeLastMS uint32
+	audioHeader     *AVPacket.MediaPacket
+	videoHeader     *AVPacket.MediaPacket
+	sequence_number uint32 //1 base
+	trunAudio       *commonBoxes.TRUN
+	trunVideo       *commonBoxes.TRUN
+	audio_data      *bytes.Buffer
+	video_data      *bytes.Buffer
+	moof_mdat       *bytes.Buffer
+	sidx            *commonBoxes.SIDX
+	timescale       uint32
+	timeBeginMS     uint32
+	timeLastMS      uint32
+	timeSlicedMS    uint32
+	timeSidxMS      uint32
+	timescaleAudio  uint32
+	timescaleVideo  uint32
 }

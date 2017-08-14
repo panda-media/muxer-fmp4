@@ -11,9 +11,9 @@ import (
 
 func NewMP4Muxer() *FMP4Muxer {
 	muxer := new(FMP4Muxer)
-	muxer.sequence_numberA = 1
-	muxer.sequence_numberV = 1
-	muxer.media_data=new(bytes.Buffer)
+	muxer.sequence_number = 1
+	muxer.audio_data =new(bytes.Buffer)
+	muxer.video_data =new(bytes.Buffer)
 	muxer.sidx=&commonBoxes.SIDX{}
 	muxer.sidx.References=list.New()
 	return muxer
@@ -30,8 +30,9 @@ func (this *FMP4Muxer) SetAudioHeader(packet *AVPacket.MediaPacket) (err error) 
 	switch SoundFormat {
 	case AVPacket.SoundFormat_AAC:
 		this.audioHeader = packet.Copy()
+		this.timescaleAudio,_,_=commonBoxes.GetAudioSampleRateSampleSize(packet)
 		if this.videoHeader==nil{
-			this.timescale,_,_=commonBoxes.GetAudioSampleRateSampleSize(packet)
+			this.timescale=this.timescaleAudio
 		}
 	default:
 		return errors.New(fmt.Sprintf("sound format %d not support now", int(SoundFormat)))
@@ -65,6 +66,7 @@ func (this *FMP4Muxer) SetVideoHeader(packet *AVPacket.MediaPacket) (err error) 
 		this.trunVideo.Tr_flags=0xa01//offset,samplesize,composition
 		this.trunVideo.Vals=list.New()
 		this.timescale=commonBoxes.VIDE_TIME_SCALE
+		this.timescaleVideo=commonBoxes.VIDE_TIME_SCALE
 	default:
 		return errors.New(fmt.Sprintf("codeciID %d not support now", int(codecID)))
 	}

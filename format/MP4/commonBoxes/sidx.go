@@ -5,12 +5,12 @@ import (
 )
 
 
-func SidxBox(param *SIDX) (box *MP4Box, err error) {
+func sidxBox(param *SIDX) (box *MP4Box, err error) {
 	if nil == param {
 		err = errors.New("nil pointer for init sidx")
 		return
 	}
-	box, err = NewMP4Box("sid	x")
+	box, err = NewMP4Box("sidx")
 	if err != nil {
 		return
 	}
@@ -35,5 +35,14 @@ func SidxBox(param *SIDX) (box *MP4Box, err error) {
 		box.Push4Bytes((uint32(v.Starts_with_SAP) << 31) | ((uint32(v.SAP_type)) << 28) | v.SAP_delta_time)
 	}
 
+	return
+}
+
+func Box_sidx_data(param *SIDX)(data []byte,err error){
+	sidx,err:=NewMP4Box("sidx")
+	if err!=nil{
+		return
+	}
+	data=sidx.Flush()
 	return
 }
