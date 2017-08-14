@@ -16,6 +16,7 @@ func NewMP4Muxer() *FMP4Muxer {
 	muxer.video_data =new(bytes.Buffer)
 	muxer.sidx=&commonBoxes.SIDX{}
 	muxer.sidx.References=list.New()
+	muxer.moof_mdat=new(bytes.Buffer)
 	return muxer
 }
 

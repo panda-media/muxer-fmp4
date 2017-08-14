@@ -7,6 +7,7 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/H264"
 	"github.com/panda-media/muxer-fmp4/format/MP4/commonBoxes"
 	"container/list"
+	"logger"
 )
 
 func (this *FMP4Muxer) AddPacket(packet *AVPacket.MediaPacket) (err error) {
@@ -57,6 +58,8 @@ func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte, err error) {
 		this.timeSidxMS=this.timeLastMS
 		this.moof_mdat.Reset()
 	}()
+	logger.LOGD(this.audio_data.Len())
+	logger.LOGD(this.video_data.Len())
 	if this.audio_data.Len()>0||this.video_data.Len()>0{
 		err=this.sliceKeyFrame()
 		if err!=nil{
@@ -174,7 +177,7 @@ func (this *FMP4Muxer) addH264(packet *AVPacket.MediaPacket)(err error){
 		//add sps pps
 		avc,err:=H264.DecodeAVC(this.videoHeader.Data[5:])
 		if err!=nil{
-			sampleSize +=this.AddSPSPPS(avc)
+			sampleSize +=this.addSPSPPS(avc)
 		}
 	}
 
@@ -192,7 +195,9 @@ func (this *FMP4Muxer) addH264(packet *AVPacket.MediaPacket)(err error){
 	this.trunVideo.Sample_count=uint32(this.trunVideo.Vals.Len())
 
 	if nalType==H264.NAL_IDR_SLICE&&this.trunVideo.Vals.Len()>1{
+		logger.LOGD("slice for key frame")
 		err=this.sliceKeyFrame()
+		logger.LOGD("slice for key frame end")
 		if err!=nil{
 			return
 		}
@@ -214,7 +219,7 @@ func (this *FMP4Muxer)addAAC(packet *AVPacket.MediaPacket)(err error){
 	return
 }
 
-func (this *FMP4Muxer)AddSPSPPS(avc *H264.AVCDecoderConfigurationRecord)(size int){
+func (this *FMP4Muxer) addSPSPPS(avc *H264.AVCDecoderConfigurationRecord)(size int){
 	for e:=avc.SPS.Front();e!=nil ;  e=e.Next(){
 		frameSize:=len(e.Value.([]byte))
 		this.video_data.WriteByte(byte((frameSize>>24)&0xff))
