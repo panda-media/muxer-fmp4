@@ -133,6 +133,7 @@ func DecodeAVC(avcData []byte) (avc *AVCDecoderConfigurationRecord, err error) {
 	}
 	if avc.AVCProfileIndication == 100 || avc.AVCProfileIndication == 110 ||
 		avc.AVCProfileIndication == 122 || avc.AVCProfileIndication == 144 {
+
 		data, err = readData(reader, 4)
 		if err != nil {
 			err = nil

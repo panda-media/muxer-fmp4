@@ -24,7 +24,7 @@ func TestFMP4FromFlvFile(fileName string) {
 	defer reader.Close()
 
 	var audioHeader,videoHeader *AVPacket.MediaPacket
-	for audioHeader==nil&&videoHeader==nil{
+	for audioHeader==nil||videoHeader==nil{
 		tag,err:=reader.GetNextTag()
 		if err!=nil{
 			return
@@ -37,9 +37,13 @@ func TestFMP4FromFlvFile(fileName string) {
 			videoHeader=pkt
 		}
 	}
+	var err error
 	mux := MP4.NewMP4Muxer()
 	mux.SetAudioHeader(audioHeader)
-	mux.SetVideoHeader(videoHeader)
+	err=mux.SetVideoHeader(videoHeader)
+	if err!=nil{
+		logger.LOGE(err.Error())
+	}
 
 	fp,err:=os.Create("fmp4.mp4")
 	if err!=nil{
@@ -60,12 +64,12 @@ func TestFMP4FromFlvFile(fileName string) {
 		mux.AddPacket(pkt)
 		tag,err=reader.GetNextTag()
 	}
-	sidx,moofmdat,err:=mux.Flush()
+	_,moofmdat,err:=mux.Flush()
 	if err!=nil{
 		logger.LOGE(err.Error())
 		return
 	}
-	fp.Write(sidx)
+	//fp.Write(sidx)
 	fp.Write(moofmdat)
 
 }

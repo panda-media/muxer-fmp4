@@ -39,7 +39,7 @@ func sidxBox(param *SIDX) (box *MP4Box, err error) {
 }
 
 func Box_sidx_data(param *SIDX)(data []byte,err error){
-	sidx,err:=NewMP4Box("sidx")
+	sidx,err:=sidxBox(param)
 	if err!=nil{
 		return
 	}
