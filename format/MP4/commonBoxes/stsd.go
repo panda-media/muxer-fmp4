@@ -95,9 +95,11 @@ func esdDescrData(AudioSpecificConfig []byte) []byte {
 	buf.WriteByte(0x00)
 	buf.WriteByte(0x00)
 	buf.WriteByte(MP4DecConfigDescrTag)
+
 	asc := AAC.ASCForMP4(AudioSpecificConfig, "")
 	esdDescData := esdDesc(asc)
 	buf.WriteByte(byte(len(esdDescData)))
+	buf.Write(esdDescData)
 
 	buf.WriteByte(0x06)
 	buf.WriteByte(0x01)

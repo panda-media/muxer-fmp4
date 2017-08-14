@@ -5,6 +5,7 @@ func stscBox(param *STSC) (box *MP4Box, err error) {
 	if err != nil {
 		return
 	}
+	box.SetVersionFlags(0,0)
 	entry_count := uint32(0)
 	if param != nil && param.Values != nil {
 		entry_count = uint32(param.Values.Len())
