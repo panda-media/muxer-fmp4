@@ -123,8 +123,8 @@ func DecodeSPS(sps []byte) (width, height, fps int, chroma_format_idc, bit_depth
 		frame_crop_bottom_offset = bit.ReadExponentialGolombCode()
 	}
 
-	width = ((pic_width_in_mbs_minus1 + 1) * 16) - frame_crop_bottom_offset*2 - frame_crop_top_offset*2
-	height = ((2 - frame_mbs_only_flag) * (pic_height_in_map_units_minus1 + 1) * 16) - (frame_crop_right_offset * 2) - (frame_crop_left_offset * 2)
+	width = ((pic_width_in_mbs_minus1 + 1) * 16) - (frame_crop_right_offset * 2) - (frame_crop_left_offset * 2)
+	height = ((2 - frame_mbs_only_flag) * (pic_height_in_map_units_minus1 + 1) * 16) - frame_crop_bottom_offset*2 - frame_crop_top_offset*2
 
 	vui_parameters_present_flag := bit.ReadBit()
 	if vui_parameters_present_flag != 0 {

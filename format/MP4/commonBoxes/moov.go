@@ -31,8 +31,9 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 	}
 	box.PushBox(mvhd)
 	var audioSampleRate uint32
+	var audioSampleSize uint32
 	if audioHeader != nil {
-		audioSampleRate, _, err = GetAudioSampleRateSampleSize(audioHeader)
+		audioSampleRate,audioSampleSize , err = GetAudioSampleRateSampleSize(audioHeader)
 		if err != nil {
 			return
 		}
@@ -44,9 +45,9 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 		param_trex_audio = &trexParam{
 			TRACK_AUDIO,
 			1,
-			audioSampleRate,
+			audioSampleSize,
 			0,
-			0,
+			0x1001,
 		}
 	}
 	if videoHeader != nil {
@@ -55,7 +56,7 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 			1,
 			0x3e8,
 			0,
-			0x10000,
+			0x10001,
 		}
 	}
 	mvex, err := mvexBox(param_trex_audio, param_trex_video)

@@ -58,8 +58,6 @@ func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte, err error) {
 		this.timeSidxMS=this.timeLastMS
 		this.moof_mdat.Reset()
 	}()
-	logger.LOGD(this.audio_data.Len())
-	logger.LOGD(this.video_data.Len())
 	if this.audio_data.Len()>0||this.video_data.Len()>0{
 		err=this.sliceKeyFrame()
 		if err!=nil{
@@ -86,12 +84,12 @@ func (this *FMP4Muxer)sliceKeyFrame()(err error){
 		this.sequence_number++
 	}()
 	//moof
-	moofData,err:=this.moof(0)
+	moofData,err:=this.moof(0,false)
 	if err!=nil{
 		return
 	}
 	moofSize:=uint32(len(moofData))
-	moofData,err=this.moof(moofSize)
+	moofData,err=this.moof(moofSize,true)
 	if err!=nil{
 		return
 	}
@@ -116,7 +114,7 @@ func (this *FMP4Muxer)sliceKeyFrame()(err error){
 	return
 }
 
-func (this *FMP4Muxer)moof(moofSize uint32)(moofData []byte,err error){
+func (this *FMP4Muxer)moof(moofSize uint32,reset bool)(moofData []byte,err error){
 	var earlierDurationA,earlierDurationV uint64
 	var paramTrunA,paramTrunV *commonBoxes.TRUN
 	data_offset:=moofSize+8
@@ -125,15 +123,19 @@ func (this *FMP4Muxer)moof(moofSize uint32)(moofData []byte,err error){
 		paramTrunA=this.trunAudio.Copy()
 		paramTrunA.Data_offset=data_offset
 		data_offset+=uint32(this.audio_data.Len())
-		this.trunAudio.Sample_count=0
-		this.trunAudio.Vals=list.New()
+		if reset{
+			this.trunAudio.Sample_count=0
+			this.trunAudio.Vals=list.New()
+		}
 	}
 	if this.videoHeader!=nil{
 		earlierDurationV=this.timeTranslate(uint64(this.timeSlicedMS-this.timeBeginMS),commonBoxes.VIDE_TIME_SCALE_Millisecond,this.timescaleVideo)
 		paramTrunV=this.trunVideo.Copy()
 		paramTrunV.Data_offset=data_offset
-		this.trunVideo.Sample_count=0
-		this.trunVideo.Vals=list.New()
+		if reset{
+			this.trunVideo.Sample_count=0
+			this.trunVideo.Vals=list.New()
+		}
 	}
 	moofData,err=commonBoxes.Box_moof_Data(this.sequence_number,earlierDurationA,paramTrunA,earlierDurationV,paramTrunV)
 
@@ -166,18 +168,21 @@ func (this *FMP4Muxer) addH264(packet *AVPacket.MediaPacket)(err error){
 	if this.trunVideo==nil{
 		return errors.New("video track not inited")
 	}
-	if packet.Data[1]==1{
+	if packet.Data[1]==0{
 		//AVC  parse,continue
+		logger.LOGD("avc data ,continue")
 		return
 	}
 
-	nalType:=packet.Data[5]&0x1f
+	nalType:=packet.Data[9]&0x1f
 	sampleSize :=0
-	if nalType==H264.NAL_IDR_SLICE{
+	if nalType==H264.NAL_IDR_SLICE||nalType==H264.NAL_SEI{
 		//add sps pps
 		avc,err:=H264.DecodeAVC(this.videoHeader.Data[5:])
-		if err!=nil{
+		if err==nil{
 			sampleSize +=this.addSPSPPS(avc)
+		}else{
+			logger.LOGE(err.Error())
 		}
 	}
 
@@ -190,14 +195,20 @@ func (this *FMP4Muxer) addH264(packet *AVPacket.MediaPacket)(err error){
 
 	trunData:=&commonBoxes.TRUN_ARRAY_FIELDS{}
 	trunData.Sample_size= uint32(sampleSize)
+	trunData.Sample_flags=0
+	var duration uint32
+	duration=10
+	if this.timeLastVideo!=0{
+		duration=packet.TimeStamp-this.timeLastVideo
+	}
+	this.timeLastVideo=packet.TimeStamp
+	trunData.Sample_duration=duration
 	trunData.Sample_composition_time_offset=compositionTime
 	this.trunVideo.Vals.PushBack(trunData)
 	this.trunVideo.Sample_count=uint32(this.trunVideo.Vals.Len())
 
 	if nalType==H264.NAL_IDR_SLICE&&this.trunVideo.Vals.Len()>1{
-		logger.LOGD("slice for key frame")
 		err=this.sliceKeyFrame()
-		logger.LOGD("slice for key frame end")
 		if err!=nil{
 			return
 		}
@@ -211,9 +222,9 @@ func (this *FMP4Muxer)addAAC(packet *AVPacket.MediaPacket)(err error){
 		return  errors.New("audio track not inited")
 	}
 
-	this.audio_data.Write(packet.Data[1:])
+	this.audio_data.Write(packet.Data[2:])
 	trunData:=&commonBoxes.TRUN_ARRAY_FIELDS{}
-	trunData.Sample_size=uint32(len(packet.Data[1:]))
+	trunData.Sample_size=uint32(len(packet.Data[2:]))
 	this.trunAudio.Vals.PushBack(trunData)
 	this.trunAudio.Sample_count=uint32(this.trunAudio.Vals.Len())
 	return

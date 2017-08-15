@@ -64,7 +64,7 @@ func (this *FMP4Muxer) SetVideoHeader(packet *AVPacket.MediaPacket) (err error) 
 		this.videoHeader = packet.Copy()
 		this.trunVideo=&commonBoxes.TRUN{}
 		this.trunVideo.Version=0
-		this.trunVideo.Tr_flags=0xa01//offset,samplesize,composition
+		this.trunVideo.Tr_flags=0xf01//offset,duration,samplesize,flags,composition
 		this.trunVideo.Vals=list.New()
 		this.timescale=commonBoxes.VIDE_TIME_SCALE
 		this.timescaleVideo=commonBoxes.VIDE_TIME_SCALE

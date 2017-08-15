@@ -23,10 +23,12 @@ type FMP4Muxer struct {
 	moof_mdat       *bytes.Buffer
 	sidx            *commonBoxes.SIDX
 	timescale       uint32
-	timeBeginMS     uint32
-	timeLastMS      uint32
-	timeSlicedMS    uint32
-	timeSidxMS      uint32
 	timescaleAudio  uint32
 	timescaleVideo  uint32
+	timeBeginMS     uint32
+	timeLastMS      uint32
+	timeLastVideo 	uint32
+	timeLastAudio 	uint32
+	timeSlicedMS    uint32
+	timeSidxMS      uint32
 }

@@ -59,8 +59,8 @@ func tkhdBox(param *tkhdParam) (box *MP4Box, err error) {
 	box.Push4Bytes(0)
 	box.Push4Bytes(0x40000000)
 
-	box.Push4Bytes(param.width)
-	box.Push4Bytes(param.height)
+	box.Push4Bytes(param.width<<16)
+	box.Push4Bytes(param.height<<16)
 
 	return
 }
