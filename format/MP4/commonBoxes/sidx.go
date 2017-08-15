@@ -4,7 +4,6 @@ import (
 	"errors"
 )
 
-
 func sidxBox(param *SIDX) (box *MP4Box, err error) {
 	if nil == param {
 		err = errors.New("nil pointer for init sidx")
@@ -38,11 +37,11 @@ func sidxBox(param *SIDX) (box *MP4Box, err error) {
 	return
 }
 
-func Box_sidx_data(param *SIDX)(data []byte,err error){
-	sidx,err:=sidxBox(param)
-	if err!=nil{
+func Box_sidx_data(param *SIDX) (data []byte, err error) {
+	sidx, err := sidxBox(param)
+	if err != nil {
 		return
 	}
-	data=sidx.Flush()
+	data = sidx.Flush()
 	return
 }

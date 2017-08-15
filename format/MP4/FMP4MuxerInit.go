@@ -2,21 +2,21 @@ package MP4
 
 import (
 	"bytes"
+	"container/list"
 	"errors"
 	"fmt"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/MP4/commonBoxes"
-	"container/list"
 )
 
 func NewMP4Muxer() *FMP4Muxer {
 	muxer := new(FMP4Muxer)
 	muxer.sequence_number = 1
-	muxer.audio_data =new(bytes.Buffer)
-	muxer.video_data =new(bytes.Buffer)
-	muxer.sidx=&commonBoxes.SIDX{}
-	muxer.sidx.References=list.New()
-	muxer.moof_mdat=new(bytes.Buffer)
+	muxer.audio_data = new(bytes.Buffer)
+	muxer.video_data = new(bytes.Buffer)
+	muxer.sidx = &commonBoxes.SIDX{}
+	muxer.sidx.References = list.New()
+	muxer.moof_mdat = new(bytes.Buffer)
 	return muxer
 }
 
@@ -31,18 +31,18 @@ func (this *FMP4Muxer) SetAudioHeader(packet *AVPacket.MediaPacket) (err error) 
 	switch SoundFormat {
 	case AVPacket.SoundFormat_AAC:
 		this.audioHeader = packet.Copy()
-		this.timescaleAudio,_,_=commonBoxes.GetAudioSampleRateSampleSize(packet)
-		if this.videoHeader==nil{
-			this.timescale=this.timescaleAudio
+		this.timescaleAudio, _, _ = commonBoxes.GetAudioSampleRateSampleSize(packet)
+		if this.videoHeader == nil {
+			this.timescale = this.timescaleAudio
 		}
 	default:
 		return errors.New(fmt.Sprintf("sound format %d not support now", int(SoundFormat)))
 
 	}
-	this.trunAudio=&commonBoxes.TRUN{}
-	this.trunAudio.Version=0
-	this.trunAudio.Tr_flags=0x201//offset,samplesize
-	this.trunAudio.Vals=list.New()
+	this.trunAudio = &commonBoxes.TRUN{}
+	this.trunAudio.Version = 0
+	this.trunAudio.Tr_flags = 0x201 //offset,samplesize
+	this.trunAudio.Vals = list.New()
 	return
 }
 
@@ -62,12 +62,12 @@ func (this *FMP4Muxer) SetVideoHeader(packet *AVPacket.MediaPacket) (err error) 
 			return errors.New("for AVC .no AVCDecoderConfigurationRecord")
 		}
 		this.videoHeader = packet.Copy()
-		this.trunVideo=&commonBoxes.TRUN{}
-		this.trunVideo.Version=0
-		this.trunVideo.Tr_flags=0xf01//offset,duration,samplesize,flags,composition
-		this.trunVideo.Vals=list.New()
-		this.timescale=commonBoxes.VIDE_TIME_SCALE
-		this.timescaleVideo=commonBoxes.VIDE_TIME_SCALE
+		this.trunVideo = &commonBoxes.TRUN{}
+		this.trunVideo.Version = 0
+		this.trunVideo.Tr_flags = 0xf01 //offset,duration,samplesize,flags,composition
+		this.trunVideo.Vals = list.New()
+		this.timescale = commonBoxes.VIDE_TIME_SCALE
+		this.timescaleVideo = commonBoxes.VIDE_TIME_SCALE
 	default:
 		return errors.New(fmt.Sprintf("codeciID %d not support now", int(codecID)))
 	}

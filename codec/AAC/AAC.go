@@ -206,9 +206,9 @@ func (this *AACAudioSpecificConfig) Channel() int {
 func ASCForMP4(ascData []byte, useragent string) (cfg []byte) {
 
 	asc := AACGetConfig(ascData)
-	if asc.ext_object_type==0{
-		cfg=make([]byte,len(ascData))
-		copy(cfg,ascData)
+	if asc.ext_object_type == 0 {
+		cfg = make([]byte, len(ascData))
+		copy(cfg, ascData)
 		return
 	}
 	if len(useragent) > 0 {

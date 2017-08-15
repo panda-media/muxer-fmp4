@@ -63,6 +63,7 @@ type SIDX struct {
 	Reference_count            uint16
 	References                 *list.List
 }
+
 //trun
 
 type TRUN_ARRAY_FIELDS struct {
@@ -81,12 +82,12 @@ type TRUN struct {
 	Vals               *list.List //*TRUN_ARRAY_FIELDS
 }
 
-func (t *TRUN)Copy()(out *TRUN){
-	out=&TRUN{t.Version,
-	t.Tr_flags,
-	t.Sample_count,
-	t.Data_offset,
-	t.First_sample_flags,
-	t.Vals}
+func (t *TRUN) Copy() (out *TRUN) {
+	out = &TRUN{t.Version,
+		t.Tr_flags,
+		t.Sample_count,
+		t.Data_offset,
+		t.First_sample_flags,
+		t.Vals}
 	return
 }

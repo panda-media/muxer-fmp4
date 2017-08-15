@@ -1,9 +1,9 @@
 package MP4
 
 import (
+	"bytes"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/MP4/commonBoxes"
-	"bytes"
 )
 
 const (
@@ -27,8 +27,8 @@ type FMP4Muxer struct {
 	timescaleVideo  uint32
 	timeBeginMS     uint32
 	timeLastMS      uint32
-	timeLastVideo 	uint32
-	timeLastAudio 	uint32
+	timeLastVideo   uint32
+	timeLastAudio   uint32
 	timeSlicedMS    uint32
 	timeSidxMS      uint32
 }

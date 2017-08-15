@@ -23,53 +23,55 @@ func TestFMP4FromFlvFile(fileName string) {
 	reader.Init(fileName)
 	defer reader.Close()
 
-	var audioHeader,videoHeader *AVPacket.MediaPacket
-	for audioHeader==nil||videoHeader==nil{
-		tag,err:=reader.GetNextTag()
-		if err!=nil{
+	var audioHeader, videoHeader *AVPacket.MediaPacket
+	for audioHeader == nil || videoHeader == nil {
+		tag, err := reader.GetNextTag()
+		if err != nil {
 			return
 		}
-		pkt:=TagToAVPacket(tag)
-		if pkt.PacketType==AVPacket.AV_PACKET_TYPE_AUDIO{
-			audioHeader=pkt
+		pkt := TagToAVPacket(tag)
+		if pkt.PacketType == AVPacket.AV_PACKET_TYPE_AUDIO {
+			audioHeader = pkt
 		}
-		if pkt.PacketType==AVPacket.AV_PACKET_TYPE_VIDEO{
-			videoHeader=pkt
+		if pkt.PacketType == AVPacket.AV_PACKET_TYPE_VIDEO {
+			videoHeader = pkt
 		}
 	}
 	var err error
 	mux := MP4.NewMP4Muxer()
-	err=mux.SetAudioHeader(audioHeader)
-	//err=mux.SetVideoHeader(videoHeader)
-	if err!=nil{
+	//err = mux.SetAudioHeader(audioHeader)
+	err=mux.SetVideoHeader(videoHeader)
+	if err != nil {
 		logger.LOGE(err.Error())
 	}
 
-	fp,err:=os.Create("fmp4A.mp4")
-	if err!=nil{
+	fp, err := os.Create("fmp4V.mp4")
+	if err != nil {
 		logger.LOGE(err.Error())
 		return
 	}
 	defer fp.Close()
-	initData,err:=mux.GetInitSegment()
-	if err!=nil{
+	initData, err := mux.GetInitSegment()
+	if err != nil {
 		logger.LOGE(err.Error())
 		return
 	}
 	fp.Write(initData)
-	tag,err:=reader.GetNextTag()
-	for tag!=nil&&err==nil  {
+	tag, err := reader.GetNextTag()
+	for tag != nil && err == nil {
 
-		pkt:=TagToAVPacket(tag)
+		pkt := TagToAVPacket(tag)
 		mux.AddPacket(pkt)
-		tag,err=reader.GetNextTag()
+		tag, err = reader.GetNextTag()
 	}
-	_,moofmdat,err:=mux.Flush()
-	if err!=nil{
+	sidx, moofmdat, err := mux.Flush()
+	if err != nil {
 		logger.LOGE(err.Error())
 		return
 	}
-	//fp.Write(sidx)
+	if false{
+		fp.Write(sidx)
+	}
 	fp.Write(moofmdat)
 
 }

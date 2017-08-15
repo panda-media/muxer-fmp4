@@ -14,7 +14,7 @@ const (
 )
 
 const (
-	VIDE_TIME_SCALE             = 1000//90000
+	VIDE_TIME_SCALE             = 1000 //90000
 	VIDE_TIME_SCALE_Millisecond = 1000
 	MP3_SAMPLE_SIZE             = 1152
 )

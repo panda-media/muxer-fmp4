@@ -4,16 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/panda-media/muxer-fmp4/codec/AAC"
-	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/codec/H264"
-	"logger"
+	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"strconv"
 	"time"
 )
 
 func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MOOV_ARRAYS) (box *MP4Box, err error) {
 
-	timestamp := uint64(time.Now().Unix() + 0x7c0f4700)
+	timestamp := uint64(time.Now().Unix())
+	timestamp+=0x83aaef00//1900 to 1970
 	box, err = NewMP4Box("moov")
 	if err != nil {
 		return
@@ -33,7 +33,7 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 	var audioSampleRate uint32
 	var audioSampleSize uint32
 	if audioHeader != nil {
-		audioSampleRate,audioSampleSize , err = GetAudioSampleRateSampleSize(audioHeader)
+		audioSampleRate, audioSampleSize, err = GetAudioSampleRateSampleSize(audioHeader)
 		if err != nil {
 			return
 		}
@@ -95,7 +95,6 @@ func Box_moov_Data(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPa
 	}
 	box, err := moovBox(durationMS, audioHeader, videoHeader, arraysAudio, arraysVideo)
 	if err != nil {
-		logger.LOGE(err.Error())
 		return
 	}
 	data = box.Flush()
