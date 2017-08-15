@@ -2,8 +2,8 @@ package commonBoxes
 
 import (
 	"bytes"
-	"github.com/panda-media/muxer-fmp4/format/AAC"
-	"github.com/panda-media/muxer-fmp4/format/H264"
+	"github.com/panda-media/muxer-fmp4/codec/AAC"
+	"github.com/panda-media/muxer-fmp4/codec/H264"
 )
 
 const (

@@ -14,7 +14,7 @@ func main() {
 	d = 0xe1
 	logger.LOGD(d)
 	TestFMP4FromFlvFile("muxer-fmp4/111.flv")
-	//TestOldFMP4("muxer-fmp4/111.flv")
+	TestOldFMP4("muxer-fmp4/111.flv")
 	return
 }
 
@@ -40,12 +40,12 @@ func TestFMP4FromFlvFile(fileName string) {
 	var err error
 	mux := MP4.NewMP4Muxer()
 	err=mux.SetAudioHeader(audioHeader)
-	err=mux.SetVideoHeader(videoHeader)
+	//err=mux.SetVideoHeader(videoHeader)
 	if err!=nil{
 		logger.LOGE(err.Error())
 	}
 
-	fp,err:=os.Create("fmp4.mp4")
+	fp,err:=os.Create("fmp4A.mp4")
 	if err!=nil{
 		logger.LOGE(err.Error())
 		return

@@ -3,7 +3,7 @@ package commonBoxes
 import (
 	"errors"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
-	"github.com/panda-media/muxer-fmp4/format/H264"
+	"github.com/panda-media/muxer-fmp4/codec/H264"
 )
 
 func stblBox(media *AVPacket.MediaPacket, arrays *MOOV_ARRAYS) (box *MP4Box, err error) {
