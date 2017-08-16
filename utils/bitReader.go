@@ -44,7 +44,7 @@ func (this *BitReader) Read32Bits() uint32 {
 	return r
 }
 
-func (this *BitReader) ReadExponentialGolombCode() int {
+func (this *BitReader) ReadUE_GolombCode() int {
 	r := 0
 	i := 0
 	for this.ReadBit() == 0 && (i < 32) {
@@ -56,7 +56,7 @@ func (this *BitReader) ReadExponentialGolombCode() int {
 }
 
 func (this *BitReader) ReadSE() int {
-	r := this.ReadExponentialGolombCode()
+	r := this.ReadUE_GolombCode()
 	if (r & 0x01) != 0 {
 		r = (r + 1) / 2
 	} else {

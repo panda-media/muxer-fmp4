@@ -48,18 +48,18 @@ func DecodeSPS(sps []byte) (width, height, fps int, chroma_format_idc, bit_depth
 	bit.ReadBits(8)
 	profile_idc := bit.ReadBits(8)
 	bit.ReadBits(16)
-	bit.ReadExponentialGolombCode()
+	bit.ReadUE_GolombCode()
 
 	if profile_idc == 100 || profile_idc == 110 ||
 		profile_idc == 122 || profile_idc == 244 ||
 		profile_idc == 44 || profile_idc == 83 ||
 		profile_idc == 86 || profile_idc == 118 {
-		chroma_format_idc = byte(bit.ReadExponentialGolombCode())
+		chroma_format_idc = byte(bit.ReadUE_GolombCode())
 		if chroma_format_idc == 3 {
 			bit.ReadBit()
 		}
-		bit_depth_luma_minus8 = byte(bit.ReadExponentialGolombCode())   //bit_depth_luma_minus
-		bit_depth_chroma_minus8 = byte(bit.ReadExponentialGolombCode()) //bit_depth_chroma_minus8
+		bit_depth_luma_minus8 = byte(bit.ReadUE_GolombCode())   //bit_depth_luma_minus
+		bit_depth_chroma_minus8 = byte(bit.ReadUE_GolombCode()) //bit_depth_chroma_minus8
 		bit.ReadBit()
 		seq_scaling_matrix_present_flag := bit.ReadBit()
 		if seq_scaling_matrix_present_flag != 0 {
@@ -88,24 +88,24 @@ func DecodeSPS(sps []byte) (width, height, fps int, chroma_format_idc, bit_depth
 		}
 	}
 
-	bit.ReadExponentialGolombCode()
-	pic_order_cnt_type := bit.ReadExponentialGolombCode()
+	bit.ReadUE_GolombCode()
+	pic_order_cnt_type := bit.ReadUE_GolombCode()
 	if 0 == pic_order_cnt_type {
-		bit.ReadExponentialGolombCode()
+		bit.ReadUE_GolombCode()
 	} else if 1 == pic_order_cnt_type {
 		bit.ReadBit()
 		bit.ReadSE()
 		bit.ReadSE()
-		num_ref_frames_in_pic_order_cnt_cycle := bit.ReadExponentialGolombCode()
+		num_ref_frames_in_pic_order_cnt_cycle := bit.ReadUE_GolombCode()
 		for i := 0; i < num_ref_frames_in_pic_order_cnt_cycle; i++ {
 			bit.ReadSE()
 		}
 	}
 
-	bit.ReadExponentialGolombCode()
+	bit.ReadUE_GolombCode()
 	bit.ReadBit()
-	pic_width_in_mbs_minus1 := bit.ReadExponentialGolombCode()
-	pic_height_in_map_units_minus1 := bit.ReadExponentialGolombCode()
+	pic_width_in_mbs_minus1 := bit.ReadUE_GolombCode()
+	pic_height_in_map_units_minus1 := bit.ReadUE_GolombCode()
 	frame_mbs_only_flag := bit.ReadBit()
 	if frame_mbs_only_flag == 0 {
 		bit.ReadBit()
@@ -117,10 +117,10 @@ func DecodeSPS(sps []byte) (width, height, fps int, chroma_format_idc, bit_depth
 	var frame_crop_top_offset int
 	var frame_crop_bottom_offset int
 	if frame_cropping_flag != 0 {
-		frame_crop_left_offset = bit.ReadExponentialGolombCode()
-		frame_crop_right_offset = bit.ReadExponentialGolombCode()
-		frame_crop_top_offset = bit.ReadExponentialGolombCode()
-		frame_crop_bottom_offset = bit.ReadExponentialGolombCode()
+		frame_crop_left_offset = bit.ReadUE_GolombCode()
+		frame_crop_right_offset = bit.ReadUE_GolombCode()
+		frame_crop_top_offset = bit.ReadUE_GolombCode()
+		frame_crop_bottom_offset = bit.ReadUE_GolombCode()
 	}
 
 	width = ((pic_width_in_mbs_minus1 + 1) * 16) - (frame_crop_right_offset * 2) - (frame_crop_left_offset * 2)
@@ -153,8 +153,8 @@ func DecodeSPS(sps []byte) (width, height, fps int, chroma_format_idc, bit_depth
 		}
 		chroma_loc_info_present_flag := bit.ReadBit()
 		if chroma_loc_info_present_flag != 0 {
-			bit.ReadExponentialGolombCode()
-			bit.ReadExponentialGolombCode()
+			bit.ReadUE_GolombCode()
+			bit.ReadUE_GolombCode()
 		}
 
 		timing_info_present_flag := bit.ReadBit()
