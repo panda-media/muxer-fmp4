@@ -7,6 +7,7 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/MP4/commonBoxes"
 	"strconv"
+	"logger"
 )
 
 func (this *FMP4Muxer) AddPacket(packet *AVPacket.MediaPacket) (err error) {
@@ -171,6 +172,10 @@ func (this *FMP4Muxer) addH264(packet *AVPacket.MediaPacket) (err error) {
 		//AVC  parse,continue
 		return
 	}
+	if packet.Data[1]==2{
+		//end
+		return
+	}
 
 	nalType := packet.Data[9] & 0x1f
 	sampleSize := 0
@@ -190,8 +195,8 @@ func (this *FMP4Muxer) addH264(packet *AVPacket.MediaPacket) (err error) {
 	compositionTime |= uint32(packet.Data[2]) << 16
 	compositionTime |= uint32(packet.Data[3]) << 8
 	compositionTime |= uint32(packet.Data[4]) << 0
-	//logger.LOGD(compositionTime+packet.TimeStamp)
-	//logger.LOGD(packet.TimeStamp)
+
+	logger.LOGD(packet.TimeStamp,compositionTime+packet.TimeStamp)
 	trunData := &commonBoxes.TRUN_ARRAY_FIELDS{}
 	trunData.Sample_size = uint32(sampleSize)
 	trunData.Sample_flags = 0

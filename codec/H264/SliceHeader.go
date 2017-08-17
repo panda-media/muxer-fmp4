@@ -1,6 +1,8 @@
 package H264
 
-import "github.com/panda-media/muxer-fmp4/utils"
+import (
+	"github.com/panda-media/muxer-fmp4/utils"
+)
 
 type slice_header struct {
 	first_mb_in_slice                int
@@ -19,6 +21,49 @@ type slice_header struct {
 	num_ref_idx_active_override_flag int
 	num_ref_idx_l0_active_minus1     int
 	num_ref_idx_l1_active_minus1     int
+}
+
+const (
+	H264_PICTURE_TYPE_P=iota
+	H264_PICTURE_TYPE_B
+	H264_PICTURE_TYPE_I
+	H264_PICTURE_TYPE_SP
+	H264_PICTURE_TYPE_SI
+)
+
+func pic_type(slice_type int)int{
+	switch slice_type {
+	case 0:
+		return H264_PICTURE_TYPE_P
+	case 1:
+		return H264_PICTURE_TYPE_B
+	case 2:
+		return H264_PICTURE_TYPE_I
+	case 3:
+		return H264_PICTURE_TYPE_SP
+	case 4:
+		return H264_PICTURE_TYPE_SI
+	case 5:
+		return H264_PICTURE_TYPE_P
+	case 6:
+		return H264_PICTURE_TYPE_B
+	case 7:
+		return H264_PICTURE_TYPE_I
+	case 8:
+		return H264_PICTURE_TYPE_SP
+	case 9:
+		return H264_PICTURE_TYPE_SI
+	}
+	return -1
+}
+
+func decodeNalSliceHeader(data []byte,sps *SPS)(header *slice_header){
+	nalType:=int(data[0]&0x1f)
+	dataEmulationPreventioned:=emulation_prevention(data)
+	reader:=&utils.BitReader{}
+	reader.Init(dataEmulationPreventioned[1:])
+	header=decodeSliceHeader(reader,sps,nalType)
+	return
 }
 
 func decodeSliceHeader(reader *utils.BitReader, sps *SPS, nalType int) (header *slice_header) {

@@ -38,6 +38,8 @@ type SPS struct {
 	frame_crop_bottom_offset              int
 	width                                 int
 	height                                int
+	time_scale int
+	num_units_in_tick int
 	vui_parameters_present_flag           int
 	vui                                   *VUI
 }
@@ -205,8 +207,10 @@ func decodeSPS_RBSP(nal []byte) (sps *SPS) {
 
 	sps.vui_parameters_present_flag = reader.ReadBit()
 	if sps.vui_parameters_present_flag != 0 {
-		logger.LOGD("decode vui")
 		sps.vui = decodeVUI(reader)
+		sps.time_scale=sps.vui.time_scale
+		sps.num_units_in_tick=sps.vui.num_units_in_tick
+		logger.LOGD(sps.time_scale,sps.num_units_in_tick)
 	}
 
 	return
@@ -245,21 +249,17 @@ func decodeVUI(reader *utils.BitReader) (vui *VUI) {
 	}
 
 	vui.timing_info_present_flag = reader.ReadBit()
-	logger.LOGD(vui.timing_info_present_flag)
 	if 0 != vui.timing_info_present_flag {
 		vui.num_units_in_tick = reader.ReadBits(32)
 		vui.time_scale = reader.ReadBits(32)
 		vui.fixed_frame_rate_flag = reader.ReadBit()
 	}
-	logger.LOGD(vui.time_scale, vui.num_units_in_tick)
 	vui.nal_hrd_parameters_present_flag = reader.ReadBit()
 	if 0 != vui.nal_hrd_parameters_present_flag {
-		logger.LOGD("nal hrd")
 		vui.hrd_nal = decodeHRD(reader)
 	}
 	vui.vcl_hrd_parameters_present_flag = reader.ReadBit()
 	if 0 != vui.vcl_hrd_parameters_present_flag {
-		logger.LOGD("vcl hrd")
 		vui.hrd_vcl = decodeHRD(reader)
 	}
 	if vui.nal_hrd_parameters_present_flag != 0 ||
@@ -268,12 +268,10 @@ func decodeVUI(reader *utils.BitReader) (vui *VUI) {
 	}
 	vui.pic_struct_present_flag = reader.ReadBit()
 	if reader.BitsLeft() <= 0 {
-		logger.LOGD("no data")
 		return
 	}
 	vui.bitstream_restriction_flag = reader.ReadBit()
 	if 0 != vui.bitstream_restriction_flag {
-		logger.LOGD("bitstream_restriction_flag")
 		vui.motion_vectors_over_pic_boundaries_flag = reader.ReadBit()
 		vui.max_bytes_per_pic_denom = reader.ReadUE_GolombCode()
 		vui.max_bits_per_mb_denom = reader.ReadUE_GolombCode()
@@ -282,7 +280,6 @@ func decodeVUI(reader *utils.BitReader) (vui *VUI) {
 		vui.max_num_reorder_frames = reader.ReadUE_GolombCode()
 		vui.max_dec_frame_buffering = reader.ReadUE_GolombCode()
 	}
-	logger.LOGD(*vui)
 	return
 }
 
