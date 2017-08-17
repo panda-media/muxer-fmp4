@@ -3,6 +3,7 @@ package H264
 import (
 	"bytes"
 	"github.com/panda-media/muxer-fmp4/utils"
+	"logger"
 )
 
 const (
@@ -43,6 +44,8 @@ func DecodeSPS(sps []byte) (width, height, fps int, chroma_format_idc, bit_depth
 
 	data := emulation_prevention(sps)
 
+	spsv := decodeSPS_RBSP(data[1:])
+	logger.LOGD(*spsv)
 	bit := &utils.BitReader{}
 	bit.Init(data)
 	bit.ReadBits(8)

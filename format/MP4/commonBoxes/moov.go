@@ -13,7 +13,7 @@ import (
 func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MOOV_ARRAYS) (box *MP4Box, err error) {
 
 	timestamp := uint64(time.Now().Unix())
-	timestamp+=0x83aaef00//1900 to 1970
+	timestamp += 0x83aaef00 //1900 to 1970
 	box, err = NewMP4Box("moov")
 	if err != nil {
 		return

@@ -40,7 +40,7 @@ func TestFMP4FromFlvFile(fileName string) {
 	var err error
 	mux := MP4.NewMP4Muxer()
 	//err = mux.SetAudioHeader(audioHeader)
-	err=mux.SetVideoHeader(videoHeader)
+	err = mux.SetVideoHeader(videoHeader)
 	if err != nil {
 		logger.LOGE(err.Error())
 	}
@@ -69,7 +69,7 @@ func TestFMP4FromFlvFile(fileName string) {
 		logger.LOGE(err.Error())
 		return
 	}
-	if false{
+	if false {
 		fp.Write(sidx)
 	}
 	fp.Write(moofmdat)
