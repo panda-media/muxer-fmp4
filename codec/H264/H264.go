@@ -66,6 +66,8 @@ type H264TimeCalculator struct {
 	group_size int64
 	last_frame_group int64
 	last_cnt_lsb int
+	last_group_time int64
+	next_group_time int64
 }
 
 func (this *H264TimeCalculator)SetSPS(sps []byte){
@@ -83,6 +85,8 @@ func (this *H264TimeCalculator)SetSPS(sps []byte){
 	this.last_frame_group=0
 	this.last_cnt_lsb=0
 	logger.LOGD(this.group_size)
+	this.last_group_time=0
+	this.next_group_time=0
 }
 
 func (this *H264TimeCalculator)AddNal(data []byte)(pts, cts int64,bFrame bool){
@@ -100,47 +104,77 @@ func (this *H264TimeCalculator)AddNal(data []byte)(pts, cts int64,bFrame bool){
 		if this.sps.pic_order_cnt_type==0{
 			pts,cts=this.cnt_type_0(data)
 		}else if this.sps.pic_order_cnt_type==1{
-			
+			pts,cts=this.cnt_type_1(data)
+		}else if this.sps.pic_order_cnt_type==2{
+			pts,cts=this.cnt_type_2(data)
 		}
 		this.frame_counter++
 	}else{
-		logger.LOGD(nalType)
+		if nalType!=NAL_SEI{
+			logger.LOGF(nalType)
+		}
 		return 0,0,false
 	}
 	return
 }
 
 func (this *H264TimeCalculator)cnt_type_0(data []byte)(pts,cts int64){
-	header:=decodeNalSliceHeader(data,this.sps)
-	lsb:=header.pic_order_cnt_lsb/2
-	var frameGroup int64
-	//repair by keyframe
-	if data[0]&0x1f==NAL_IDR_SLICE{
-		this.last_cnt_lsb=0
-		this.last_frame_group=this.frame_counter/this.group_size
-	}
-	if lsb<this.last_cnt_lsb&&(this.last_cnt_lsb-lsb)>=int(this.group_size/2){
-		//next
-		frameGroup=this.last_frame_group+1
-	}else if lsb>this.last_cnt_lsb&&(lsb-this.last_cnt_lsb)>=int(this.group_size/2){
-		//last
-		frameGroup=this.last_frame_group-1
-		if frameGroup<0{
-			frameGroup=0
-		}
-	}else{
-		frameGroup=this.last_frame_group
-	}
 	pts =(this.frame_counter)*this.frame_duration
 	if this.duration_remainder!=0&&this.frame_counter%this.fps==0&&this.frame_counter>0{
 		pts+=this.duration_remainder
 	}
-	dts:=this.frame_duration*(frameGroup*this.group_size+int64(lsb)+2)
-	if dts<pts{
-		dts=pts
+	header:=decodeNalSliceHeader(data,this.sps)
+	lsb:=header.pic_order_cnt_lsb/2
+	if lsb==0{
+		dts:=pts+this.frame_duration*2
+		cts=dts-pts
+		this.last_group_time=dts
+	}else{
+		var op int64
+		if lsb<this.last_cnt_lsb&&(this.last_cnt_lsb-lsb)>int(this.group_size/2){
+			//next
+			op=1
+		}else if lsb>this.last_cnt_lsb&&(lsb-this.last_cnt_lsb)>int(this.group_size/2){
+			//last
+			op=-1
+		}else{
+			op=0
+		}
+
+		switch op {
+		case -1:
+			this.last_group_time-=this.frame_duration*this.group_size
+			dts:=this.last_group_time+int64(lsb)*this.frame_duration
+			cts=dts-pts
+		case 0:
+			dts:=this.last_group_time+int64(lsb)*this.frame_duration
+			cts=dts-pts
+		case 1:
+			this.last_group_time+=this.group_size*this.frame_duration
+			dts:=this.last_group_time+int64(lsb)*this.frame_duration
+			cts=dts-pts
+		}
 	}
-	cts=dts-pts
-	this.last_frame_group=frameGroup
+	if cts<0{
+		cts=0
+	}
 	this.last_cnt_lsb=lsb
+	logger.LOGD(pts,cts,lsb,this.frame_counter)
+
+	return
+}
+
+func (this *H264TimeCalculator)cnt_type_1(data []byte)(pts,cts int64){
+	pts =(this.frame_counter)*this.frame_duration
+	if this.duration_remainder!=0&&this.frame_counter%this.fps==0&&this.frame_counter>0{
+		pts+=this.duration_remainder
+	}
+	return
+}
+func (this *H264TimeCalculator)cnt_type_2(data []byte)(pts,cts int64){
+	pts =(this.frame_counter)*this.frame_duration
+	if this.duration_remainder!=0&&this.frame_counter%this.fps==0&&this.frame_counter>0{
+		pts+=this.duration_remainder
+	}
 	return
 }

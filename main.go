@@ -15,9 +15,9 @@ func main() {
 	var d byte
 	d = 0xe1
 	logger.LOGD(d)
-	//TestFMP4FromFlvFile("muxer-fmp4/Rollin.flv")
+	//TestFMP4FromFlvFile("muxer-fmp4/111.flv")
 	//TestOldFMP4("muxer-fmp4/111.flv")
-	TestPTSDTS("muxer-fmp4/Rollin.flv")
+	TestPTSDTS("muxer-fmp4/111.flv")
 	return
 }
 
@@ -27,7 +27,8 @@ func TestFMP4FromFlvFile(fileName string) {
 	defer reader.Close()
 
 	var audioHeader, videoHeader *AVPacket.MediaPacket
-	for audioHeader == nil && videoHeader == nil {
+	logger.LOGD(audioHeader)
+	for /*audioHeader == nil ||*/ videoHeader == nil {
 		tag, err := reader.GetNextTag()
 		if err != nil {
 			return

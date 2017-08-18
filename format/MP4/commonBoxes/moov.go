@@ -90,7 +90,7 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 
 func Box_moov_Data(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MOOV_ARRAYS) (data []byte, err error) {
 	if nil == audioHeader && nil == videoHeader {
-		err = errors.New("no audio and audio header")
+		err = errors.New("no audio and video	 header")
 		return
 	}
 	box, err := moovBox(durationMS, audioHeader, videoHeader, arraysAudio, arraysVideo)
