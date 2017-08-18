@@ -71,6 +71,9 @@ func decodeSliceHeader(reader *utils.BitReader, sps *SPS, nalType int) (header *
 	header.first_mb_in_slice = reader.ReadUE_GolombCode()
 	header.slice_type = reader.ReadUE_GolombCode()
 	header.pic_parameter_set_id = reader.ReadUE_GolombCode()
+	if sps.separate_colour_plane_flag==1{
+		header.colour_plane_id=reader.ReadBits(2)
+	}
 	header.frame_num = reader.ReadBits(sps.log2_max_frame_num_minus4 + 4)
 	if sps.frame_mbs_only_flag == 0 {
 		header.field_pic_flag = reader.ReadBit()

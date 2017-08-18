@@ -59,14 +59,19 @@ func DecodeSPS(sps []byte) (width, height, fps int, chroma_format_idc, bit_depth
 
 type H264TimeCalculator struct {
 	sps                *SPS
-	last_i_frame_counter   int64
 	frame_counter      int64
 	fps                int64
 	frame_duration     int64
 	duration_remainder int64
+	group_size int64
+	last_frame_group int64
+	last_cnt_lsb int
 }
 
 func (this *H264TimeCalculator)SetSPS(sps []byte){
+	if this.sps!=nil{
+		return
+	}
 	data := emulation_prevention(sps)
 	this.sps=decodeSPS_RBSP(data[1:])
 	if this.sps.time_scale>0{
@@ -74,29 +79,68 @@ func (this *H264TimeCalculator)SetSPS(sps []byte){
 		this.frame_duration=1000/this.fps
 		this.duration_remainder=1000%this.fps
 	}
+	this.group_size=((1<<uint(this.sps.log2_max_pic_order_cnt_lsb_minus4+4))+1)/2
+	this.last_frame_group=0
+	this.last_cnt_lsb=0
+	logger.LOGD(this.group_size)
 }
 
-func (this *H264TimeCalculator)AddNal(data []byte)(pts, dts int64,bFrame bool){
+func (this *H264TimeCalculator)AddNal(data []byte)(pts, cts int64,bFrame bool){
 	nalType:=data[0]&0x1f
 	if this.sps==nil||this.sps.time_scale==0{
 		return 0,0,false
 	}
 	if nalType==NAL_SLICE||nalType==NAL_DPA||
 	nalType==NAL_IDR_SLICE{
-		pts =this.frame_counter*this.frame_duration
-		header:=decodeNalSliceHeader(data,this.sps)
-		if NAL_IDR_SLICE==nalType{
-			this.last_i_frame_counter = this.frame_counter
+		bFrame=true
+		pts =(this.frame_counter)*this.frame_duration
+		if this.duration_remainder!=0&&this.frame_counter%this.fps==0&&this.frame_counter>0{
+			pts+=this.duration_remainder
 		}
-		dts=this.frame_duration*(int64(header.pic_order_cnt_lsb/2)+this.last_i_frame_counter)
-加一个80?
-		没有修正
-		logger.LOGD(dts,header.pic_order_cnt_lsb/2,pic_type(header.slice_type))
-
+		if this.sps.pic_order_cnt_type==0{
+			pts,cts=this.cnt_type_0(data)
+		}else if this.sps.pic_order_cnt_type==1{
+			
+		}
 		this.frame_counter++
 	}else{
 		logger.LOGD(nalType)
 		return 0,0,false
 	}
+	return
+}
+
+func (this *H264TimeCalculator)cnt_type_0(data []byte)(pts,cts int64){
+	header:=decodeNalSliceHeader(data,this.sps)
+	lsb:=header.pic_order_cnt_lsb/2
+	var frameGroup int64
+	//repair by keyframe
+	if data[0]&0x1f==NAL_IDR_SLICE{
+		this.last_cnt_lsb=0
+		this.last_frame_group=this.frame_counter/this.group_size
+	}
+	if lsb<this.last_cnt_lsb&&(this.last_cnt_lsb-lsb)>=int(this.group_size/2){
+		//next
+		frameGroup=this.last_frame_group+1
+	}else if lsb>this.last_cnt_lsb&&(lsb-this.last_cnt_lsb)>=int(this.group_size/2){
+		//last
+		frameGroup=this.last_frame_group-1
+		if frameGroup<0{
+			frameGroup=0
+		}
+	}else{
+		frameGroup=this.last_frame_group
+	}
+	pts =(this.frame_counter)*this.frame_duration
+	if this.duration_remainder!=0&&this.frame_counter%this.fps==0&&this.frame_counter>0{
+		pts+=this.duration_remainder
+	}
+	dts:=this.frame_duration*(frameGroup*this.group_size+int64(lsb)+2)
+	if dts<pts{
+		dts=pts
+	}
+	cts=dts-pts
+	this.last_frame_group=frameGroup
+	this.last_cnt_lsb=lsb
 	return
 }

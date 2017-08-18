@@ -10,7 +10,7 @@ type SPS struct {
 	constraint_set_flags                  int
 	level_idc                             int
 	chroma_format_idc                     int
-	residual_color_transform_flag         int
+	separate_colour_plane_flag            int
 	bit_depth_luma_minus8                 int
 	bit_depth_chroma_minus8               int
 	qpprime_y_zero_transform_bypass_flag  int
@@ -126,7 +126,7 @@ func decodeSPS_RBSP(nal []byte) (sps *SPS) {
 		sps.profile_idc == 144 {
 		sps.chroma_format_idc = reader.ReadUE_GolombCode()
 		if 3 == sps.chroma_format_idc {
-			sps.residual_color_transform_flag = reader.ReadBit()
+			sps.separate_colour_plane_flag = reader.ReadBit()
 		}
 		sps.bit_depth_luma_minus8 = reader.ReadUE_GolombCode()
 		sps.bit_depth_chroma_minus8 = reader.ReadUE_GolombCode()
