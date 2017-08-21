@@ -11,7 +11,34 @@ import (
 	"mediaTypes/amf"
 )
 
+type Event struct {
+
+}
+
+type EventHandler func(e *Event)
+func EventHandlerFun(e *Event){
+}
+type EventDispatcher struct {
+
+}
+
+func (this *EventDispatcher)AddEventListener(handler interface{}){
+	handler.(func(e *Event))(nil)
+	logger.LOGD(handler)
+}
+
+type obj struct {
+
+}
+func (this *obj)handler(e* Event){
+
+}
+
 func main() {
+	eve:=&EventDispatcher{}
+	o:=&obj{}
+	eve.AddEventListener(o.handler)
+
 	var d byte
 	d = 0xe1
 	logger.LOGD(d)

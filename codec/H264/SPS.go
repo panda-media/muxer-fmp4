@@ -2,7 +2,6 @@ package H264
 
 import (
 	"github.com/panda-media/muxer-fmp4/utils"
-	"logger"
 )
 
 type SPS struct {
@@ -210,7 +209,6 @@ func decodeSPS_RBSP(nal []byte) (sps *SPS) {
 		sps.vui = decodeVUI(reader)
 		sps.time_scale=sps.vui.time_scale
 		sps.num_units_in_tick=sps.vui.num_units_in_tick
-		logger.LOGD(sps.time_scale,sps.num_units_in_tick)
 	}
 
 	return

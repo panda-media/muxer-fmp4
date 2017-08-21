@@ -2,7 +2,6 @@ package H264
 
 import (
 	"bytes"
-	"logger"
 )
 
 const (
@@ -84,7 +83,6 @@ func (this *H264TimeCalculator)SetSPS(sps []byte){
 	this.group_size=((1<<uint(this.sps.log2_max_pic_order_cnt_lsb_minus4+4))+1)/2
 	this.last_frame_group=0
 	this.last_cnt_lsb=0
-	logger.LOGD(this.group_size)
 	this.last_group_time=0
 	this.next_group_time=0
 }
@@ -111,7 +109,6 @@ func (this *H264TimeCalculator)AddNal(data []byte)(pts, cts int64,bFrame bool){
 		this.frame_counter++
 	}else{
 		if nalType!=NAL_SEI{
-			logger.LOGF(nalType)
 		}
 		return 0,0,false
 	}
@@ -159,7 +156,6 @@ func (this *H264TimeCalculator)cnt_type_0(data []byte)(pts,cts int64){
 		cts=0
 	}
 	this.last_cnt_lsb=lsb
-	logger.LOGD(pts,cts,lsb,this.frame_counter)
 
 	return
 }
