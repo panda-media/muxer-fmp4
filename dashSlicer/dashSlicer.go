@@ -11,6 +11,7 @@ type DASHSlicer struct {
 	minSliceDuration int
 	maxSliceDuration int
 	maxSliceDataCounter int
+	lastBeginTime int
 	H264Processer dashH264
 	AACProcesser dashAAC
 	audioHeaderMuxed bool
@@ -39,6 +40,14 @@ func (this *DASHSlicer)init(){
 	this.avData.init(this.audioVideoSeparated,this.maxSliceDataCounter)
 }
 
+func (this *DASHSlicer)newslice(timestamp uint32)bool{
+	if int(timestamp)-this.lastBeginTime>=this.minSliceDuration{
+		this.lastBeginTime=int(timestamp)
+		return true
+	}
+	return false
+}
+
 //one or more nal
 func (this *DASHSlicer)AddH264Nals(data []byte)(err error){
 	tags:=this.H264Processer.addNals(data)
@@ -56,16 +65,51 @@ func (this *DASHSlicer)AddH264Nals(data []byte)(err error){
 			this.videoHeaderMuxed=true
 			continue
 		}
+		if tag.Data[0]==0x1f&&tag.Data[1]==1{
+			if this.newslice(tag.TimeStamp){
+					_,moofmdat,err:=this.avMuxer.Flush()
+				if err!=nil{
+					return err
+				}
+				this.avData.AddVideoSlice(moofmdat)
+				if this.audioVideoSeparated{
+					_,moofmdat,err:=this.aMuxer.Flush()
+					if err!=nil{
+						this.avData.AddAudioSlice(nil)
+					}
+					this.avData.AddAudioSlice(moofmdat)
+				}
+			}
+		}
 		err=this.avMuxer.AddPacket(tag)
 		if err!=nil{
 			return
 		}
-		check for slice
+
 	}
 	return
 }
 //one frame
 func (this *DASHSlicer)AddAACFrame(data []byte)(err error){
+	tag:=this.AACProcesser.addFrame(data)
+	if tag==nil{
+		err=errors.New("invalid aac data")
+		return
+	}
+	if false==this.audioHeaderMuxed{
+		if this.audioVideoSeparated{
+			this.aMuxer.SetAudioHeader(tag)
+		}else{
+			this.avMuxer.SetAudioHeader(tag)
+		}
+		this.audioHeaderMuxed=true
+	}else{
+		if this.audioVideoSeparated{
+			this.aMuxer.AddPacket(tag)
+		}else{
+			this.avMuxer.AddPacket(tag)
+		}
+	}
 	return
 }
 

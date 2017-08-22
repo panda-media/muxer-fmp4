@@ -48,9 +48,7 @@ func (this *indexedData)GetAudioHeader()(header []byte){
 }
 
 func (this *indexedData) AddAudioSlice(data []byte) {
-	if nil == data || len(data) == 0 {
-		return
-	}
+
 	this.muxA.Lock()
 	defer this.muxA.Unlock()
 	if this.avSeparated {

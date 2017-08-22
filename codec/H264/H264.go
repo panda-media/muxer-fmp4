@@ -59,9 +59,7 @@ func DecodeSPS(sps []byte) (width, height, fps int, chroma_format_idc, bit_depth
 type H264TimeCalculator struct {
 	sps                *SPS
 	frame_counter      int64
-	fps                int64
-	frame_duration     int64
-	duration_remainder int64
+	frame_duration int64
 	group_size int64
 	last_frame_group int64
 	last_cnt_lsb int
@@ -76,15 +74,19 @@ func (this *H264TimeCalculator)SetSPS(sps []byte){
 	data := emulation_prevention(sps)
 	this.sps=decodeSPS_RBSP(data[1:])
 	if this.sps.time_scale>0{
-		this.fps=int64(this.sps.time_scale/(this.sps.num_units_in_tick*2))
-		this.frame_duration=1000/this.fps
-		this.duration_remainder=1000%this.fps
+		fps:=int64(this.sps.time_scale/(this.sps.num_units_in_tick*2))
+		this.frame_duration=1000/fps
 	}
 	this.group_size=((1<<uint(this.sps.log2_max_pic_order_cnt_lsb_minus4+4))+1)/2
 	this.last_frame_group=0
 	this.last_cnt_lsb=0
 	this.last_group_time=0
 	this.next_group_time=0
+}
+
+func (this *H264TimeCalculator)calFrameTimeStamp()(timestamp int64){
+	timestamp=this.frame_counter*2000/int64(this.sps.time_scale)*int64(this.sps.num_units_in_tick)
+	return
 }
 
 func (this *H264TimeCalculator)AddNal(data []byte)(pts, cts int64,bFrame bool){
@@ -95,10 +97,7 @@ func (this *H264TimeCalculator)AddNal(data []byte)(pts, cts int64,bFrame bool){
 	if nalType==NAL_SLICE||nalType==NAL_DPA||
 	nalType==NAL_IDR_SLICE{
 		bFrame=true
-		pts =(this.frame_counter)*this.frame_duration
-		if this.duration_remainder!=0&&this.frame_counter%this.fps==0&&this.frame_counter>0{
-			pts+=this.duration_remainder
-		}
+
 		if this.sps.pic_order_cnt_type==0{
 			pts,cts=this.cnt_type_0(data)
 		}else if this.sps.pic_order_cnt_type==1{
@@ -116,10 +115,7 @@ func (this *H264TimeCalculator)AddNal(data []byte)(pts, cts int64,bFrame bool){
 }
 
 func (this *H264TimeCalculator)cnt_type_0(data []byte)(pts,cts int64){
-	pts =(this.frame_counter)*this.frame_duration
-	if this.duration_remainder!=0&&this.frame_counter%this.fps==0&&this.frame_counter>0{
-		pts+=this.duration_remainder
-	}
+	pts =this.calFrameTimeStamp()
 	header:=decodeNalSliceHeader(data,this.sps)
 	lsb:=header.pic_order_cnt_lsb/2
 	if lsb==0{
@@ -161,16 +157,10 @@ func (this *H264TimeCalculator)cnt_type_0(data []byte)(pts,cts int64){
 }
 
 func (this *H264TimeCalculator)cnt_type_1(data []byte)(pts,cts int64){
-	pts =(this.frame_counter)*this.frame_duration
-	if this.duration_remainder!=0&&this.frame_counter%this.fps==0&&this.frame_counter>0{
-		pts+=this.duration_remainder
-	}
+	pts =this.calFrameTimeStamp()
 	return
 }
 func (this *H264TimeCalculator)cnt_type_2(data []byte)(pts,cts int64){
-	pts =(this.frame_counter)*this.frame_duration
-	if this.duration_remainder!=0&&this.frame_counter%this.fps==0&&this.frame_counter>0{
-		pts+=this.duration_remainder
-	}
+	pts =this.calFrameTimeStamp()
 	return
 }
