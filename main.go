@@ -17,9 +17,9 @@ func main() {
 	var d byte
 	d = 0xe1
 	logger.LOGD(d)
-	//TestFMP4FromFlvFile("muxer-fmp4/111.flv")
+	TestFMP4FromFlvFile("muxer-fmp4/111.flv")
 	//TestOldFMP4("muxer-fmp4/111.flv")
-	TestPTSDTS("muxer-fmp4/111.flv")
+	//TestPTSDTS("muxer-fmp4/111.flv")
 	return
 }
 
@@ -30,7 +30,7 @@ func TestFMP4FromFlvFile(fileName string) {
 
 	var audioHeader, videoHeader *AVPacket.MediaPacket
 	logger.LOGD(audioHeader)
-	for /*audioHeader == nil ||*/ videoHeader == nil {
+	for audioHeader == nil || videoHeader == nil {
 		tag, err := reader.GetNextTag()
 		if err != nil {
 			return
@@ -45,13 +45,13 @@ func TestFMP4FromFlvFile(fileName string) {
 	}
 	var err error
 	mux := MP4.NewMP4Muxer()
-	//err = mux.SetAudioHeader(audioHeader)
-	err = mux.SetVideoHeader(videoHeader)
+	err = mux.SetAudioHeader(audioHeader)
+	//err = mux.SetVideoHeader(videoHeader)
 	if err != nil {
 		logger.LOGE(err.Error())
 	}
 
-	fp, err := os.Create("fmp4V.mp4")
+	fp, err := os.Create("fmp4A.mp4")
 	if err != nil {
 		logger.LOGE(err.Error())
 		return
@@ -70,12 +70,13 @@ func TestFMP4FromFlvFile(fileName string) {
 		mux.AddPacket(pkt)
 		tag, err = reader.GetNextTag()
 	}
-	sidx, moofmdat, err := mux.Flush()
+	sidx, moofmdat,duration,bitrate, err := mux.Flush()
 	if err != nil {
 		logger.LOGE(err.Error())
 		return
 	}
-	if false {
+	logger.LOGD(duration,bitrate)
+	if true {
 		fp.Write(sidx)
 	}
 	fp.Write(moofmdat)

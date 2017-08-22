@@ -20,7 +20,7 @@ type FMP4Muxer struct {
 	trunVideo       *commonBoxes.TRUN
 	audio_data      *bytes.Buffer
 	video_data      *bytes.Buffer
-	moof_mdat       *bytes.Buffer
+	moof_mdat_buf   *bytes.Buffer
 	sidx            *commonBoxes.SIDX
 	timescale       uint32
 	timescaleAudio  uint32
@@ -31,4 +31,5 @@ type FMP4Muxer struct {
 	timeLastAudio   uint32
 	timeSlicedMS    uint32
 	timeSidxMS      uint32
+	mdat_size int
 }

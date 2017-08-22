@@ -7,7 +7,6 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/MP4/commonBoxes"
 	"strconv"
-	"logger"
 )
 
 func (this *FMP4Muxer) AddPacket(packet *AVPacket.MediaPacket) (err error) {
@@ -53,10 +52,11 @@ func (this *FMP4Muxer) AddPacket(packet *AVPacket.MediaPacket) (err error) {
 	return
 }
 
-func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte, err error) {
+func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte,duration,bitrate int, err error) {
 	defer func() {
 		this.timeSidxMS = this.timeLastMS
-		this.moof_mdat.Reset()
+		this.moof_mdat_buf.Reset()
+		this.mdat_size=0
 	}()
 	if this.audio_data.Len() > 0 || this.video_data.Len() > 0 {
 		err = this.sliceKeyFrame()
@@ -65,12 +65,17 @@ func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte, err error) {
 			return
 		}
 	}
-	moof_mdats = this.moof_mdat.Bytes()
+	moof_mdats = this.moof_mdat_buf.Bytes()
 	sidx, err = commonBoxes.Box_sidx_data(this.sidx)
 	if err != nil {
 		err = errors.New("flush fmp4,sidx err" + err.Error())
 		return
 	}
+
+	//duration
+	duration=int(this.timeLastMS-this.timeSidxMS)
+	//bitrate
+	bitrate=1000*this.mdat_size*8/duration
 	return
 }
 
@@ -93,7 +98,7 @@ func (this *FMP4Muxer) sliceKeyFrame() (err error) {
 	if err != nil {
 		return
 	}
-	this.moof_mdat.Write(moofData)
+	this.moof_mdat_buf.Write(moofData)
 	//mdat
 	mdat, err := commonBoxes.NewMP4Box("mdat")
 	if err != nil {
@@ -107,7 +112,8 @@ func (this *FMP4Muxer) sliceKeyFrame() (err error) {
 		mdat.PushBytes(this.video_data.Bytes())
 	}
 	mdatData := mdat.Flush()
-	this.moof_mdat.Write(mdatData)
+	this.moof_mdat_buf.Write(mdatData)
+	this.mdat_size+=len(mdatData)
 	refSize := uint32(len(mdatData) + len(moofData))
 	//sidx
 	this.addSIDX(refSize, this.timeTranslate(uint64(this.timeSidxMS-this.timeBeginMS), commonBoxes.VIDE_TIME_SCALE_Millisecond, this.timescale))
@@ -196,7 +202,7 @@ func (this *FMP4Muxer) addH264(packet *AVPacket.MediaPacket) (err error) {
 	compositionTime |= uint32(packet.Data[3]) << 8
 	compositionTime |= uint32(packet.Data[4]) << 0
 
-	logger.LOGD(packet.TimeStamp,compositionTime+packet.TimeStamp)
+	//logger.LOGD(packet.TimeStamp,compositionTime+packet.TimeStamp)
 	trunData := &commonBoxes.TRUN_ARRAY_FIELDS{}
 	trunData.Sample_size = uint32(sampleSize)
 	trunData.Sample_flags = 0
