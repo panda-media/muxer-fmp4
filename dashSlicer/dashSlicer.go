@@ -18,7 +18,7 @@ type DASHSlicer struct {
 	videoHeaderMuxed bool
 	avMuxer *MP4.FMP4Muxer	//audio and video or video only
 	aMuxer *MP4.FMP4Muxer	//audio only
-	avData *indexedData
+	avData *sliceDataContainer
 }
 
 func NEWSlicer(avSeparate bool,minLengthMS,maxLengthMS,maxSliceDataCounter int)(slicer *DASHSlicer){
@@ -36,7 +36,7 @@ func (this *DASHSlicer)init(){
 	if this.audioVideoSeparated{
 		this.aMuxer=MP4.NewMP4Muxer()
 	}
-	this.avData=&indexedData{}
+	this.avData=&sliceDataContainer{}
 	this.avData.init(this.audioVideoSeparated,this.maxSliceDataCounter)
 }
 
@@ -67,17 +67,17 @@ func (this *DASHSlicer)AddH264Nals(data []byte)(err error){
 		}
 		if tag.Data[0]==0x1f&&tag.Data[1]==1{
 			if this.newslice(tag.TimeStamp){
-					_,moofmdat,err:=this.avMuxer.Flush()
+					_,moofmdat,duration,bitrate,err:=this.avMuxer.Flush()
 				if err!=nil{
 					return err
 				}
-				this.avData.AddVideoSlice(moofmdat)
+				this.avData.AddVideoSlice(moofmdat,duration,bitrate)
 				if this.audioVideoSeparated{
-					_,moofmdat,err:=this.aMuxer.Flush()
+					_,moofmdat,duration,bitrate,err:=this.aMuxer.Flush()
 					if err!=nil{
-						this.avData.AddAudioSlice(nil)
+						this.avData.AddAudioSlice(nil,0,0)
 					}
-					this.avData.AddAudioSlice(moofmdat)
+					this.avData.AddAudioSlice(moofmdat,duration,bitrate)
 				}
 			}
 		}
@@ -118,7 +118,8 @@ return
 }
 
 func (this *DASHSlicer)GetMediaDataByIndex(idx int,audio bool)(data []byte,err error){
-	data,err=this.avData.MediaDataByIndex(idx,audio)
+	slice_data,err:=this.avData.MediaDataByIndex(idx,audio)
+	data=slice_data.data
 	return
 }
 
