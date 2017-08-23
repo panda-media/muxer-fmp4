@@ -3,6 +3,7 @@ package dashSlicer
 import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/codec/AAC"
+	"logger"
 )
 
 type dashAAC struct {
@@ -13,6 +14,7 @@ type dashAAC struct {
 
 func (this *dashAAC)addFrame(data []byte)(tag *AVPacket.MediaPacket)  {
 	if data==nil||len(data)==0{
+		logger.LOGF(data)
 		return
 	}
 	if false==this.headerDecode{
@@ -22,8 +24,9 @@ func (this *dashAAC)addFrame(data []byte)(tag *AVPacket.MediaPacket)  {
 			return
 		}
 
+		logger.LOGD(*this.asc)
 		this.headerDecode=true
-		tag:=&AVPacket.MediaPacket{}
+		tag=&AVPacket.MediaPacket{}
 		tag.PacketType=AVPacket.AV_PACKET_TYPE_AUDIO
 		tag.TimeStamp=0
 		tag.Data=make([]byte,2+len(data))
@@ -31,7 +34,7 @@ func (this *dashAAC)addFrame(data []byte)(tag *AVPacket.MediaPacket)  {
 		tag.Data[1]=0
 		copy(tag.Data[2:],data)
 	}else{
-		tag:=&AVPacket.MediaPacket{}
+		tag=&AVPacket.MediaPacket{}
 		tag.PacketType=AVPacket.AV_PACKET_TYPE_AUDIO
 		tag.Data=make([]byte,2+len(data))
 		tag.TimeStamp=this.calNextTimeStamp()

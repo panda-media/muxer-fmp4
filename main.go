@@ -9,6 +9,7 @@ import (
 	"os"
 	"github.com/panda-media/muxer-fmp4/codec/H264"
 	"mediaTypes/amf"
+	"github.com/panda-media/muxer-fmp4/example"
 )
 
 
@@ -17,9 +18,12 @@ func main() {
 	var d byte
 	d = 0xe1
 	logger.LOGD(d)
+	m:=make(map[int]string)
+	logger.LOGF(m)
 	TestFMP4FromFlvFile("muxer-fmp4/111.flv")
 	//TestOldFMP4("muxer-fmp4/111.flv")
 	//TestPTSDTS("muxer-fmp4/111.flv")
+	example.TestDash("muxer-fmp4/111.flv")
 	return
 }
 

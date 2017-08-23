@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"github.com/panda-media/muxer-fmp4/codec/H264"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
+	"logger"
 )
 
 type dashH264 struct {
@@ -24,7 +25,8 @@ func (this *dashH264) addNals(data []byte) (tags *list.List) {
 	tags = list.New()
 	for e := nals.Front(); e != nil; e = e.Next() {
 		nal := e.Value.([]byte)
-		zero := nal[0] >> 6
+
+		zero := nal[0] >> 7
 		if 0 != zero {
 			continue
 		}
@@ -33,18 +35,25 @@ func (this *dashH264) addNals(data []byte) (tags *list.List) {
 		case H264.NAL_SPS:
 			this.sps = make([]byte, len(nal))
 			copy(this.sps, nal)
+			logger.LOGD("sps")
 		case H264.NAL_PPS:
 			this.pps = make([]byte, len(nal))
 			copy(this.pps, nal)
+			logger.LOGD("pps")
 		case H264.NAL_SEI:
 			this.sei = make([]byte, len(nal))
 			copy(this.sei, nal)
+			logger.LOGD("sei")
 		case H264.NAL_SPS_EXT:
 			this.spsext = make([]byte, len(nal))
 			copy(this.spsext, nal)
 		case H264.NAL_IDR_SLICE:
 			if false == this.avcGeted {
-				continue
+				tag := this.createAVCTag()
+				if nil == tag {
+					continue
+				}
+				tags.PushBack(tag)
 			}
 			tag := this.createIdrSliceTag(nal)
 			if nil != tag {
@@ -52,11 +61,7 @@ func (this *dashH264) addNals(data []byte) (tags *list.List) {
 			}
 		case H264.NAL_SLICE:
 			if false == this.avcGeted {
-				tag := this.createAVCTag()
-				if nil == tag {
-					continue
-				}
-				tags.PushBack(tag)
+				continue
 			}
 			tag := this.createIdrSliceTag(nal)
 			if nil != tag {
@@ -89,9 +94,13 @@ func (this *dashH264) addNals(data []byte) (tags *list.List) {
 func (this *dashH264) separateNalus(data []byte) (nals *list.List) {
 	nalData, dataCur := this.getOneNal1(data[0:])
 	nals = list.New()
-	for nalData != nil && len(nalData) > 0 && dataCur < len(data) {
+	for nalData != nil && len(nalData) > 0  {
+
 		nals.PushBack(nalData)
-		this.getOneNal1(data[dataCur:])
+		if dataCur==len(data){
+			break
+		}
+		nalData,dataCur=this.getOneNal1(data[dataCur:])
 	}
 	return
 }

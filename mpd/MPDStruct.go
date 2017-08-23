@@ -20,13 +20,14 @@ type MPD struct {
 	Profiles                   string                  `xml:"profiles,attr"`
 	Type                       string                  `xml:"type,attr,omitempty"`
 	AvailabilityStartTime      string                  `xml:"availabilityStartTime,attr,omitempty"`
-	PublishTime                string                  `xml:"publishTime,attr,omitempty"`
+	PublishTime                string                  `xml:"publishTime,attr,omitempty"` //MPD generated timestamp
 	MediaPresentationDuration  string                  `xml:"mediaPresentationDuration,attr,omitempty"`
-	AvailabilityEndTime        string                  `xml:"availabilityEndTime,attr,omitempty"`
+	AvailabilityEndTime        string                  `xml:"availabilityEndTime,attr,omitempty"` //earliest availability time in UTC
 	mediaPresentationDuration  string                  `xml:"mediaPresentationDuration,attr,omitempty"`
-	MinimumUpdatePeriod        string                  `xml:"minimumUpdatePeriod,attr,omitempty"`
-	MinBufferTime              string                  `xml:"minBufferTime,attr"`
-	SuggestedPresentationDelay string                  `xml:"suggestedPresentationDelay,attr,omitempty"`
+	MinimumUpdatePeriod        string                  `xml:"minimumUpdatePeriod,attr,omitempty"`        //next time to update mpd
+	MinBufferTime              string                  `xml:"minBufferTime,attr"`                        //min slice duration
+	TimeShiftBufferDepth       string                  `xml:"timeShiftBufferDepth,attr,omitempty"`       //duration
+	SuggestedPresentationDelay string                  `xml:"suggestedPresentationDelay,attr,omitempty"` //suggested delay
 	MaxSegmentDuration         string                  `xml:"maxSegmentDuration,attr,omitempty"`
 	MaxSubsegmentDuration      string                  `xml:"maxSubsegmentDuration,attr,omitempty"`
 	Xmlns                      string                  `xml:"xmlns,attr"`
@@ -53,8 +54,8 @@ type BaseURLXML struct {
 }
 
 type PeriodXML struct {
-	Id                 string             `xml:"id,attr,omitempty"`
-	Start              string             `xml:"start,attr,omitempty"`
+	Id                 string             `xml:"id,attr,omitempty"`//for dynamic,aways 0
+	Start              string             `xml:"start,attr,omitempty"`//for dynamci,awaw PT0.0S
 	Duration           string             `xml:"duration,attr,omitempty"`
 	BitstreamSwitching *bool              `xml:"bitstreamSwitching,attr,omitempty"`
 	BaseURL            []BaseURLXML       `xml:"BaseURL,omitempty"`

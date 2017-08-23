@@ -74,6 +74,9 @@ func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte,duration,bitrate int, er
 
 	//duration
 	duration=int(this.timeLastMS-this.timeSidxMS)
+	if duration==0{
+		duration=1
+	}
 	//bitrate
 	bitrate=1000*this.mdat_size*8/duration
 	return
