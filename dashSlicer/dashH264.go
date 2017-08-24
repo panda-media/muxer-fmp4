@@ -2,6 +2,7 @@ package dashSlicer
 
 import (
 	"container/list"
+	"fmt"
 	"github.com/panda-media/muxer-fmp4/codec/H264"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"logger"
@@ -15,6 +16,10 @@ type dashH264 struct {
 	avcGeted bool
 	dp_datas *list.List
 	nalTimer H264.H264TimeCalculator
+	width    int
+	height   int
+	fps      int
+	codec    string
 }
 
 func (this *dashH264) addNals(data []byte) (tags *list.List) {
@@ -35,15 +40,15 @@ func (this *dashH264) addNals(data []byte) (tags *list.List) {
 		case H264.NAL_SPS:
 			this.sps = make([]byte, len(nal))
 			copy(this.sps, nal)
-			logger.LOGD("sps")
+			this.width, this.height, this.fps, _, _, _ = H264.DecodeSPS(this.sps)
+			this.codec = fmt.Sprintf("avc1.%02x%02x%02x", int(this.sps[1]), int(this.sps[2]), int(this.sps[3]))
+			logger.LOGD(this.codec)
 		case H264.NAL_PPS:
 			this.pps = make([]byte, len(nal))
 			copy(this.pps, nal)
-			logger.LOGD("pps")
 		case H264.NAL_SEI:
 			this.sei = make([]byte, len(nal))
 			copy(this.sei, nal)
-			logger.LOGD("sei")
 		case H264.NAL_SPS_EXT:
 			this.spsext = make([]byte, len(nal))
 			copy(this.spsext, nal)
@@ -94,13 +99,13 @@ func (this *dashH264) addNals(data []byte) (tags *list.List) {
 func (this *dashH264) separateNalus(data []byte) (nals *list.List) {
 	nalData, dataCur := this.getOneNal1(data[0:])
 	nals = list.New()
-	for nalData != nil && len(nalData) > 0  {
+	for nalData != nil && len(nalData) > 0 {
 
 		nals.PushBack(nalData)
-		if dataCur==len(data){
+		if dataCur == len(data) {
 			break
 		}
-		nalData,dataCur=this.getOneNal1(data[dataCur:])
+		nalData, dataCur = this.getOneNal1(data[dataCur:])
 	}
 	return
 }

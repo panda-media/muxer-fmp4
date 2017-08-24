@@ -1,14 +1,15 @@
 package dashSlicer
 
 import (
-	"github.com/panda-media/muxer-fmp4/format/MP4"
-	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"errors"
+	"github.com/panda-media/muxer-fmp4/codec/AAC"
+	"github.com/panda-media/muxer-fmp4/format/AVPacket"
+	"github.com/panda-media/muxer-fmp4/format/MP4"
+	"github.com/panda-media/muxer-fmp4/mpd"
 	"logger"
 )
 
 type DASHSlicer struct {
-	audioVideoSeparated bool
 	minSliceDuration    int
 	maxSliceDuration    int
 	maxSliceDataCounter int
@@ -17,123 +18,139 @@ type DASHSlicer struct {
 	aacProcesser        dashAAC
 	audioHeaderMuxed    bool
 	videoHeaderMuxed    bool
-	avMuxer             *MP4.FMP4Muxer	//audio and video or video only
-	aMuxer              *MP4.FMP4Muxer	//audio only
-	avData              *sliceDataContainer
+	muxerV              *MP4.FMP4Muxer //video only
+	muxerA              *MP4.FMP4Muxer //audio only
+	audioFrameCount     int
+	mpd                 *mpd.MPDDynamic
 }
 
-func NEWSlicer(avSeparate bool,minLengthMS,maxLengthMS,maxSliceDataCounter int)(slicer *DASHSlicer){
-	slicer=&DASHSlicer{}
-	slicer.audioVideoSeparated=avSeparate
-	slicer.minSliceDuration=minLengthMS
-	slicer.maxSliceDuration=maxLengthMS
-	slicer.maxSliceDataCounter=maxSliceDataCounter
+func NEWSlicer(avSeparate bool, minLengthMS, maxLengthMS, maxSliceDataCounter int) (slicer *DASHSlicer) {
+	slicer = &DASHSlicer{}
+	slicer.minSliceDuration = minLengthMS
+	slicer.maxSliceDuration = maxLengthMS
+	slicer.maxSliceDataCounter = maxSliceDataCounter
 	slicer.init()
 	return
 }
 
-func (this *DASHSlicer)init(){
-	this.avMuxer=MP4.NewMP4Muxer()
-	if this.audioVideoSeparated{
-		this.aMuxer=MP4.NewMP4Muxer()
-	}
-	this.avData=&sliceDataContainer{}
-	this.avData.init(this.audioVideoSeparated,this.maxSliceDataCounter)
+func (this *DASHSlicer) init() {
+	this.muxerV = MP4.NewMP4Muxer()
+	this.muxerA = MP4.NewMP4Muxer()
+	this.mpd = mpd.NewDynamicMPDCreater(this.minSliceDuration, this.maxSliceDataCounter)
 }
 
-func (this *DASHSlicer)newslice(timestamp uint32)bool{
-	if int(timestamp)-this.lastBeginTime>=this.minSliceDuration{
-		this.lastBeginTime=int(timestamp)
+func (this *DASHSlicer) newslice(timestamp uint32) bool {
+	if int(timestamp)-this.lastBeginTime >= this.minSliceDuration {
+		this.lastBeginTime = int(timestamp)
 		return true
 	}
 	return false
 }
 
 //one or more nal
-func (this *DASHSlicer)AddH264Nals(data []byte)(err error){
-	tags:=this.h264Processer.addNals(data)
-	if tags==nil||tags.Len()==0{
-		logger.LOGD("no tag")
+func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
+	tags := this.h264Processer.addNals(data)
+	if tags == nil || tags.Len() == 0 {
 		return
 	}
-	for e:=tags.Front();e!=nil;e=e.Next(){
-		tag:=e.Value.(*AVPacket.MediaPacket)
-		if this.videoHeaderMuxed==false&&tag.Data[0]==0x17&&tag.Data[1]==0{
-			err=this.avMuxer.SetVideoHeader(tag)
-			if err!=nil{
-				err=errors.New("set video header :"+err.Error())
+	for e := tags.Front(); e != nil; e = e.Next() {
+		tag := e.Value.(*AVPacket.MediaPacket)
+		if this.videoHeaderMuxed == false && tag.Data[0] == 0x17 && tag.Data[1] == 0 {
+			err = this.muxerV.SetVideoHeader(tag)
+			if err != nil {
+				err = errors.New("set video header :" + err.Error())
 				return
 			}
-			this.videoHeaderMuxed=true
+			this.mpd.SetVideoInfo(1000, this.h264Processer.width, this.h264Processer.height, this.h264Processer.fps,
+				1, this.h264Processer.codec)
+			this.videoHeaderMuxed = true
 			continue
 		}
-		if tag.Data[0]==0x17&&tag.Data[1]==1{
-			if this.newslice(tag.TimeStamp){
-					_,moofmdat,duration,bitrate,err:=this.avMuxer.Flush()
-				if err!=nil{
+		if tag.Data[0] == 0x17 && tag.Data[1] == 1 {
+			if this.newslice(tag.TimeStamp) {
+				_, moofmdat, duration, bitrate, err := this.muxerV.Flush()
+				if err != nil {
 					return err
 				}
-				this.avData.AddVideoSlice(moofmdat,duration,bitrate)
-				if this.audioVideoSeparated{
-					_,moofmdat,duration,bitrate,err:=this.aMuxer.Flush()
-					if err!=nil{
-						this.avData.AddAudioSlice(nil,0,0)
+				this.mpd.SetVideoBitrate(bitrate)
+				this.mpd.AddVideoSlice(duration, moofmdat)
+				if this.audioHeaderMuxed {
+					_, moofmdat, _, bitrate, er := this.muxerA.Flush()
+					if er != nil {
+						return er
 					}
-					this.avData.AddAudioSlice(moofmdat,duration,bitrate)
+
+					this.mpd.SetAudioBitrate(bitrate)
+					this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
+					this.audioFrameCount = 0
 				}
 			}
+			mpd,err:=this.mpd.GetMPDXML()
+			if err!=nil{
+				logger.LOGF(err.Error())
+			}
+			logger.LOGF(string(mpd))
 		}
-		err=this.avMuxer.AddPacket(tag)
-		if err!=nil{
+		err = this.muxerV.AddPacket(tag)
+		if err != nil {
 			return
 		}
 
 	}
 	return
 }
+
 //one frame
-func (this *DASHSlicer)AddAACFrame(data []byte)(err error){
-	tag:=this.aacProcesser.addFrame(data)
-	if tag==nil{
-		err=errors.New("invalid aac data")
+func (this *DASHSlicer) AddAACFrame(data []byte) (err error) {
+	tag := this.aacProcesser.addFrame(data)
+	if tag == nil {
+		err = errors.New("invalid aac data")
 		logger.LOGD(err.Error())
 		return
 	}
-	if false==this.audioHeaderMuxed{
-		if this.audioVideoSeparated{
-			this.aMuxer.SetAudioHeader(tag)
-			logger.LOGD("set audio header")
-		}else{
-			this.avMuxer.SetAudioHeader(tag)
-		}
-		this.audioHeaderMuxed=true
-	}else{
-		if this.audioVideoSeparated{
-			this.aMuxer.AddPacket(tag)
-		}else{
-			this.avMuxer.AddPacket(tag)
-		}
+	if false == this.audioHeaderMuxed {
+		this.muxerA.SetAudioHeader(tag)
+		this.audioHeaderMuxed = true
+		this.mpd.SetAudioInfo(this.aacProcesser.asc.SampleRate(),
+			this.aacProcesser.asc.SampleRate(),
+			16,
+			this.aacProcesser.asc.Channel(),
+			AAC.SAMPLE_SIZE,
+			this.aacProcesser.codec)
+	} else {
+
+		this.muxerA.AddPacket(tag)
+		this.audioFrameCount++
 	}
 	return
 }
 
-func (this *DASHSlicer)GetLastedMPD()(data []byte,err error){
+func (this *DASHSlicer) GetLastedMPD() (data []byte, err error) {
 	//period id,update
-return
-}
-
-func (this *DASHSlicer)GetMediaDataByIndex(idx int,audio bool)(data []byte,err error){
-	slice_data,err:=this.avData.MediaDataByIndex(idx,audio)
-	data=slice_data.data
 	return
 }
 
-func (this *DASHSlicer)GetInitA()(data []byte){
-	if this.audioVideoSeparated{
-		data=this.avData.GetAudioHeader()
+func (this *DASHSlicer) GetMediaDataByIndex(idx int, audio bool) (data []byte, err error) {
+
+	return
+}
+
+func (this *DASHSlicer) GetInitA() (data []byte, err error) {
+	if this.audioHeaderMuxed {
+
+		data, err = this.muxerA.GetInitSegment()
+		return
+	} else {
+		err = errors.New("audio not founded")
 	}
 	return
 }
-func (this *DASHSlicer)GetInitV()(data []byte){
-	return this.avData.GetVideoHeader()
+func (this *DASHSlicer) GetInitV() (data []byte, err error) {
+	if this.videoHeaderMuxed {
+		data, err = this.muxerV.GetInitSegment()
+		return
+	} else {
+		err = errors.New("video header not founded")
+	}
+	return
 }

@@ -31,5 +31,5 @@ type FMP4Muxer struct {
 	timeLastAudio   uint32
 	timeSlicedMS    uint32
 	timeSidxMS      uint32
-	mdat_size int
+	mdat_size       int
 }

@@ -1,15 +1,14 @@
 package dashSlicer
 
 import (
-	"sync"
 	"errors"
+	"sync"
 )
-
 
 type sliceData struct {
 	duration int
-	bitrate int
-	data []byte
+	bitrate  int
+	data     []byte
 }
 
 type sliceDataContainer struct {
@@ -46,74 +45,74 @@ func (this *sliceDataContainer) SetAudioHeader(header []byte) {
 	copy(this.audioHeader, header)
 }
 
-func (this *sliceDataContainer)GetVideoHeader()(header []byte){
-	return  this.videoHeader
+func (this *sliceDataContainer) GetVideoHeader() (header []byte) {
+	return this.videoHeader
 }
 
-func (this *sliceDataContainer)GetAudioHeader()(header []byte){
+func (this *sliceDataContainer) GetAudioHeader() (header []byte) {
 	return this.audioHeader
 }
 
-func (this *sliceDataContainer) AddAudioSlice(data []byte,duration,bitrate int) {
+func (this *sliceDataContainer) AddAudioSlice(data []byte, duration, bitrate int) {
 
 	this.muxA.Lock()
 	defer this.muxA.Unlock()
 	if this.avSeparated {
-		slice_data:=&sliceData{
+		slice_data := &sliceData{
 			duration,
 			bitrate,
 			data,
 		}
-		this.dataA[this.idx_a]=slice_data
+		this.dataA[this.idx_a] = slice_data
 		this.idx_a++
 		if len(this.dataA) > this.maxSliceCounter {
-			delete(this.dataA,this.startNumber_a)
+			delete(this.dataA, this.startNumber_a)
 			this.startNumber_a++
 		}
 	}
 }
 
-func (this *sliceDataContainer) AddVideoSlice(data []byte,duration,bitrate int) {
+func (this *sliceDataContainer) AddVideoSlice(data []byte, duration, bitrate int) {
 	if nil == data || len(data) == 0 {
 		return
 	}
 	this.muxAV.Lock()
 	defer this.muxAV.Unlock()
-	slice_data:=&sliceData{
+	slice_data := &sliceData{
 		duration,
 		bitrate,
 		data,
 	}
-	this.dataAV[this.idx_av]=slice_data
+	this.dataAV[this.idx_av] = slice_data
 	this.idx_av++
 	if len(this.dataAV) > this.maxSliceCounter {
-		delete(this.dataAV,this.startNumber_av)
+		delete(this.dataAV, this.startNumber_av)
 		this.startNumber_av++
 	}
 }
 
 func (this *sliceDataContainer) MediaDataByIndex(idx int, audio bool) (slice_data *sliceData, err error) {
-	if audio{
-		if false==this.avSeparated{
-			return  nil,errors.New("audio and video are in the same track")
-		}else{
+	if audio {
+		if false == this.avSeparated {
+			return nil, errors.New("audio and video are in the same track")
+		} else {
 			this.muxA.Lock()
 			defer this.muxA.Unlock()
-			ok:=false
-			slice_data,ok=this.dataA[idx]
-			if false==ok{
-				err=errors.New("audio data index out of range")
+			ok := false
+			slice_data, ok = this.dataA[idx]
+			if false == ok {
+				err = errors.New("audio data index out of range")
 				return
 			}
 			return
 		}
-	}else{
+	} else {
 		this.muxAV.Lock()
 		defer this.muxAV.RUnlock()
-		ok:=false
-		slice_data,ok=this.dataAV[idx]
-		if false==ok{
-			err=errors.New("av data index out of range")
+		ok := false
+		slice_data, ok = this.dataAV[idx]
+		if false == ok {
+			err = errors.New("av data index out of range")
 			return
 		}
 		return

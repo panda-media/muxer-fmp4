@@ -52,11 +52,11 @@ func (this *FMP4Muxer) AddPacket(packet *AVPacket.MediaPacket) (err error) {
 	return
 }
 
-func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte,duration,bitrate int, err error) {
+func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte, duration, bitrate int, err error) {
 	defer func() {
 		this.timeSidxMS = this.timeLastMS
 		this.moof_mdat_buf.Reset()
-		this.mdat_size=0
+		this.mdat_size = 0
 	}()
 	if this.audio_data.Len() > 0 || this.video_data.Len() > 0 {
 		err = this.sliceKeyFrame()
@@ -73,12 +73,12 @@ func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte,duration,bitrate int, er
 	}
 
 	//duration
-	duration=int(this.timeLastMS-this.timeSidxMS)
-	if duration==0{
-		duration=1
+	duration = int(this.timeLastMS - this.timeSidxMS)
+	if duration == 0 {
+		duration = 1
 	}
 	//bitrate
-	bitrate=1000*this.mdat_size*8/duration
+	bitrate = 1000 * this.mdat_size * 8 / duration
 	return
 }
 
@@ -116,7 +116,7 @@ func (this *FMP4Muxer) sliceKeyFrame() (err error) {
 	}
 	mdatData := mdat.Flush()
 	this.moof_mdat_buf.Write(mdatData)
-	this.mdat_size+=len(mdatData)
+	this.mdat_size += len(mdatData)
 	refSize := uint32(len(mdatData) + len(moofData))
 	//sidx
 	this.addSIDX(refSize, this.timeTranslate(uint64(this.timeSidxMS-this.timeBeginMS), commonBoxes.VIDE_TIME_SCALE_Millisecond, this.timescale))
@@ -181,7 +181,7 @@ func (this *FMP4Muxer) addH264(packet *AVPacket.MediaPacket) (err error) {
 		//AVC  parse,continue
 		return
 	}
-	if packet.Data[1]==2{
+	if packet.Data[1] == 2 {
 		//end
 		return
 	}

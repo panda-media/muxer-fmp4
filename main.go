@@ -1,25 +1,27 @@
 package main
 
 import (
+	"github.com/panda-media/muxer-fmp4/codec/H264"
+	"github.com/panda-media/muxer-fmp4/example"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/MP4"
 	"logger"
+	"mediaTypes/amf"
 	"mediaTypes/flv"
 	"mediaTypes/mp4"
 	"os"
-	"github.com/panda-media/muxer-fmp4/codec/H264"
-	"mediaTypes/amf"
-	"github.com/panda-media/muxer-fmp4/example"
+	"encoding/xml"
 )
 
-
+type MPD struct {
+	VR int `xml:"vr,attr"`
+}
 func main() {
+	mpd:=&MPD{}
+	mpd.VR=32
+	data,err:=xml.Marshal(mpd)
+	logger.LOGD(string(data),err)
 
-	var d byte
-	d = 0xe1
-	logger.LOGD(d)
-	m:=make(map[int]string)
-	logger.LOGF(m)
 	TestFMP4FromFlvFile("muxer-fmp4/111.flv")
 	//TestOldFMP4("muxer-fmp4/111.flv")
 	//TestPTSDTS("muxer-fmp4/111.flv")
@@ -74,12 +76,12 @@ func TestFMP4FromFlvFile(fileName string) {
 		mux.AddPacket(pkt)
 		tag, err = reader.GetNextTag()
 	}
-	sidx, moofmdat,duration,bitrate, err := mux.Flush()
+	sidx, moofmdat, duration, bitrate, err := mux.Flush()
 	if err != nil {
 		logger.LOGE(err.Error())
 		return
 	}
-	logger.LOGD(duration,bitrate)
+	logger.LOGD(duration, bitrate)
 	if true {
 		fp.Write(sidx)
 	}
@@ -119,7 +121,7 @@ func TestOldFMP4(fileName string) {
 	}
 }
 
-func TestPTSDTS(fileName string){
+func TestPTSDTS(fileName string) {
 	reader := flv.FlvFileReader{}
 	reader.Init(fileName)
 	defer reader.Close()
@@ -128,31 +130,31 @@ func TestPTSDTS(fileName string){
 		return
 	}
 
-	htimer:=&H264.H264TimeCalculator{}
-	for tag!=nil&&err==nil{
-		if tag.TagType==flv.FLV_TAG_Video{
-			if tag.Data[1]==0{
+	htimer := &H264.H264TimeCalculator{}
+	for tag != nil && err == nil {
+		if tag.TagType == flv.FLV_TAG_Video {
+			if tag.Data[1] == 0 {
 				//avc
-				avc,err:=H264.DecodeAVC(tag.Data[5:])
-				if err!=nil{
+				avc, err := H264.DecodeAVC(tag.Data[5:])
+				if err != nil {
 					logger.LOGD(tag.Data)
 					logger.LOGE(err.Error())
 				}
 				htimer.SetSPS(avc.SPS.Front().Value.([]byte))
-			}else{
-				cur:=5
-				for cur<len(tag.Data){
-					nalSize,err:=amf.AMF0DecodeInt32(tag.Data[cur:])
-					cur+=4
-					if err!=nil{
+			} else {
+				cur := 5
+				for cur < len(tag.Data) {
+					nalSize, err := amf.AMF0DecodeInt32(tag.Data[cur:])
+					cur += 4
+					if err != nil {
 						logger.LOGE(err.Error())
 						return
 					}
-					htimer.AddNal(tag.Data[cur:cur+int(nalSize)])
-					cur+=int(nalSize)
+					htimer.AddNal(tag.Data[cur : cur+int(nalSize)])
+					cur += int(nalSize)
 				}
 			}
 		}
-		tag,err=reader.GetNextTag()
+		tag, err = reader.GetNextTag()
 	}
 }

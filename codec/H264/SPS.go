@@ -37,8 +37,8 @@ type SPS struct {
 	frame_crop_bottom_offset              int
 	width                                 int
 	height                                int
-	time_scale int
-	num_units_in_tick int
+	time_scale                            int
+	num_units_in_tick                     int
 	vui_parameters_present_flag           int
 	vui                                   *VUI
 }
@@ -207,8 +207,8 @@ func decodeSPS_RBSP(nal []byte) (sps *SPS) {
 	sps.vui_parameters_present_flag = reader.ReadBit()
 	if sps.vui_parameters_present_flag != 0 {
 		sps.vui = decodeVUI(reader)
-		sps.time_scale=sps.vui.time_scale
-		sps.num_units_in_tick=sps.vui.num_units_in_tick
+		sps.time_scale = sps.vui.time_scale
+		sps.num_units_in_tick = sps.vui.num_units_in_tick
 	}
 
 	return
