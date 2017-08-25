@@ -7,6 +7,7 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/MP4"
 	"github.com/panda-media/muxer-fmp4/mpd"
 	"logger"
+	"os"
 )
 
 type DASHSlicer struct {
@@ -84,12 +85,14 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 					this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
 					this.audioFrameCount = 0
 				}
+				mpd,err:=this.mpd.GetMPDXML()
+				if err!=nil{
+					logger.LOGF(err.Error())
+				}
+				fp,err:=os.Create("mpd.xml")
+				defer fp.Close()
+				fp.Write(mpd)
 			}
-			mpd,err:=this.mpd.GetMPDXML()
-			if err!=nil{
-				logger.LOGF(err.Error())
-			}
-			logger.LOGF(string(mpd))
 		}
 		err = this.muxerV.AddPacket(tag)
 		if err != nil {

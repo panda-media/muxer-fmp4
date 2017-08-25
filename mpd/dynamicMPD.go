@@ -8,6 +8,7 @@ import (
 	"sync"
 	"encoding/xml"
 	"time"
+	"logger"
 )
 const(
 
@@ -124,9 +125,11 @@ func (this *MPDDynamic) SetAudioInfo(timescale, sampleRate, bandwidth, channel, 
 }
 
 func (this *MPDDynamic) SetVideoBitrate(bitrate int) {
+	logger.LOGD(bitrate)
 	this.vide.bitrate = bitrate
 }
 func (this *MPDDynamic) SetAudioBitrate(bitrate int) {
+	logger.LOGD(bitrate)
 	this.audi.bandwidth = bitrate
 }
 
@@ -147,8 +150,8 @@ func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (err error) {
 
 	this.lastVideoTimestamp += int64(segment_time_data.d)
 	if this.videoKeys.Len() > this.maxSliceCount {
-		this.videoKeys.Remove(this.videoKeys.Front())
 		k := this.videoKeys.Front().Value.(int64)
+		this.videoKeys.Remove(this.videoKeys.Front())
 		delete(this.videoData, k)
 	}
 	return
@@ -169,8 +172,8 @@ func (this *MPDDynamic) AddAudioSlice(frameCount int, data []byte) (err error) {
 	this.audioKeys.PushBack(this.lastAudioTimestamp)
 	this.lastAudioTimestamp += int64(segment_time_data.d)
 	if this.audioKeys.Len() > this.maxSliceCount {
-		this.audioKeys.Remove(this.audioKeys.Front())
 		k := this.audioKeys.Front().Value.(int64)
+		this.audioKeys.Remove(this.audioKeys.Front())
 		delete(this.audioData, k)
 	}
 	return
@@ -213,12 +216,17 @@ func (this *MPDDynamic)GetMPDXML()(data []byte,err error){
 	this.adaptationSetVideo(&mpd.Period[0])
 	this.adaptationSetAudio(&mpd.Period[0])
 
-	data,err=xml.Marshal(mpd)
+	body,err:=xml.Marshal(mpd)
+	if err==nil{
+		data=make([]byte,len(body)+len(xml.Header))
+		copy(data,[]byte(xml.Header))
+		copy(data[len([]byte(xml.Header)):],body)
+	}
 	return
 }
 
 func (this *MPDDynamic)mpdAttrs(mpd *MPD){
-	mpd.Xmlns=mpd.Xmlns
+	mpd.Xmlns=MPDXMLNS
 	mpd.Profiles=ProfileISOLive
 	mpd.Type=dynamicMPD
 
@@ -286,6 +294,7 @@ func (this *MPDDynamic)adaptationSetVideo(period *PeriodXML){
 	ada.SegmentTemplate.Initialization="video_$RepresentationID$_init_mp4.m4s"
 	segmentTimeLine:=&SegmentTimelineXML{}
 	segmentTimeLine.S=make([]SegmentTimelineDesc,this.videoKeys.Len())
+	logger.LOGD(this.videoKeys.Len(),this.audioKeys.Len())
 	for e,idx:=this.videoKeys.Front(),0;e!=nil;e=e.Next(){
 		k:=e.Value.(int64)
 		if idx==0{
@@ -339,6 +348,7 @@ func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
 		segmentTimeLine.S[idx].D=this.audioData[k].d
 		idx++
 	}
+	ada.SegmentTemplate.SegmentTimeline=segmentTimeLine
 
 	period.AdaptationSet=append(period.AdaptationSet,ada)
 }
