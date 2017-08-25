@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/panda-media/muxer-fmp4/codec/H264"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
-	"logger"
 )
 
 type dashH264 struct {
@@ -42,7 +41,6 @@ func (this *dashH264) addNals(data []byte) (tags *list.List) {
 			copy(this.sps, nal)
 			this.width, this.height, this.fps, _, _, _ = H264.DecodeSPS(this.sps)
 			this.codec = fmt.Sprintf("avc1.%02x%02x%02x", int(this.sps[1]), int(this.sps[2]), int(this.sps[3]))
-			logger.LOGD(this.codec)
 		case H264.NAL_PPS:
 			this.pps = make([]byte, len(nal))
 			copy(this.pps, nal)

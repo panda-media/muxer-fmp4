@@ -8,7 +8,6 @@ import (
 	"sync"
 	"encoding/xml"
 	"time"
-	"logger"
 )
 const(
 
@@ -125,11 +124,9 @@ func (this *MPDDynamic) SetAudioInfo(timescale, sampleRate, bandwidth, channel, 
 }
 
 func (this *MPDDynamic) SetVideoBitrate(bitrate int) {
-	logger.LOGD(bitrate)
 	this.vide.bitrate = bitrate
 }
 func (this *MPDDynamic) SetAudioBitrate(bitrate int) {
-	logger.LOGD(bitrate)
 	this.audi.bandwidth = bitrate
 }
 
@@ -213,8 +210,12 @@ func (this *MPDDynamic)GetMPDXML()(data []byte,err error){
 	mpd.Period[0].Start="PT0.0S"
 
 	mpd.Period[0].AdaptationSet=make([]AdaptationSetXML,0)
-	this.adaptationSetVideo(&mpd.Period[0])
-	this.adaptationSetAudio(&mpd.Period[0])
+	if this.vide!=nil{
+		this.adaptationSetVideo(&mpd.Period[0])
+	}
+	if this.audi!=nil{
+		this.adaptationSetAudio(&mpd.Period[0])
+	}
 
 	body,err:=xml.Marshal(mpd)
 	if err==nil{
@@ -294,7 +295,6 @@ func (this *MPDDynamic)adaptationSetVideo(period *PeriodXML){
 	ada.SegmentTemplate.Initialization="video_$RepresentationID$_init_mp4.m4s"
 	segmentTimeLine:=&SegmentTimelineXML{}
 	segmentTimeLine.S=make([]SegmentTimelineDesc,this.videoKeys.Len())
-	logger.LOGD(this.videoKeys.Len(),this.audioKeys.Len())
 	for e,idx:=this.videoKeys.Front(),0;e!=nil;e=e.Next(){
 		k:=e.Value.(int64)
 		if idx==0{

@@ -8,8 +8,16 @@ import (
 	"github.com/panda-media/muxer-fmp4/mpd"
 	"logger"
 	"os"
+	"strconv"
 )
 
+const(
+
+	saveAV=false
+)
+
+var vidx=0
+var aidx=0
 type DASHSlicer struct {
 	minSliceDuration    int
 	maxSliceDuration    int
@@ -65,6 +73,13 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 			this.mpd.SetVideoInfo(1000, this.h264Processer.width, this.h264Processer.height, this.h264Processer.fps,
 				1, this.h264Processer.codec)
 			this.videoHeaderMuxed = true
+
+			if saveAV{
+				fp,_:=os.Create("initV.mp4")
+				defer fp.Close()
+				initV,_:=this.muxerV.GetInitSegment()
+				fp.Write(initV)
+			}
 			continue
 		}
 		if tag.Data[0] == 0x17 && tag.Data[1] == 1 {
@@ -75,6 +90,12 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 				}
 				this.mpd.SetVideoBitrate(bitrate)
 				this.mpd.AddVideoSlice(duration, moofmdat)
+				if saveAV&&vidx<10{
+					fp,_:=os.Create("v"+strconv.Itoa(vidx)+".mp4")
+					vidx++
+					defer fp.Close()
+					fp.Write(moofmdat)
+				}
 				if this.audioHeaderMuxed {
 					_, moofmdat, _, bitrate, er := this.muxerA.Flush()
 					if er != nil {
@@ -84,6 +105,12 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 					this.mpd.SetAudioBitrate(bitrate)
 					this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
 					this.audioFrameCount = 0
+					if saveAV&&aidx<10{
+						fp,_:=os.Create("a"+strconv.Itoa(aidx)+".mp4")
+						aidx++
+						defer fp.Close()
+						fp.Write(moofmdat)
+					}
 				}
 				mpd,err:=this.mpd.GetMPDXML()
 				if err!=nil{
@@ -120,8 +147,13 @@ func (this *DASHSlicer) AddAACFrame(data []byte) (err error) {
 			this.aacProcesser.asc.Channel(),
 			AAC.SAMPLE_SIZE,
 			this.aacProcesser.codec)
+		if saveAV{
+			fp,_:=os.Create("InitA.mp4")
+			defer fp.Close()
+			initA,_:=this.muxerA.GetInitSegment()
+			fp.Write(initA)
+		}
 	} else {
-
 		this.muxerA.AddPacket(tag)
 		this.audioFrameCount++
 	}
@@ -129,7 +161,7 @@ func (this *DASHSlicer) AddAACFrame(data []byte) (err error) {
 }
 
 func (this *DASHSlicer) GetLastedMPD() (data []byte, err error) {
-	//period id,update
+	data,err=this.mpd.GetMPDXML()
 	return
 }
 
