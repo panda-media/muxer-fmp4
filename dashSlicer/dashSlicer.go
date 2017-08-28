@@ -99,7 +99,7 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 		if mediadurationout{
 			//logger.LOGD("slice duration")
 		}
-		//mediadurationout=false
+		mediadurationout=false
 		if (tag.Data[0] == 0x17 && tag.Data[1] == 1)||mediadurationout {
 			if this.newslice(tag.TimeStamp) {
 				_, moofmdat, duration, bitrate, err := this.muxerV.Flush()
