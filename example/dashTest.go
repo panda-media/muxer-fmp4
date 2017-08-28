@@ -8,7 +8,7 @@ import (
 )
 
 func TestDash(inputFileName string) {
-	slicer := dashSlicer.NEWSlicer(true, 1000, 10000, 5)
+	slicer := dashSlicer.NEWSlicer(true, 1000, 5000, 5)
 	reader := &flv.FlvFileReader{}
 	err := reader.Init(inputFileName)
 	if err != nil {

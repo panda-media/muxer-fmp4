@@ -8,11 +8,11 @@ func ftypBox() (box *MP4Box, err error) {
 	//box.PushBytes([]byte("dash"))
 
 	box.PushBytes([]byte("isom"))
-	box.Push4Bytes(0x200)
+	box.Push4Bytes(0x00)
 	box.PushBytes([]byte("isom"))
-	box.PushBytes([]byte("iso2"))
 	box.PushBytes([]byte("avc1"))
-	box.PushBytes([]byte("mp41"))
+	box.PushBytes([]byte("mp42"))
+	box.PushBytes([]byte("dash"))
 	return
 }
 

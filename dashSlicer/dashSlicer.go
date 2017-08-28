@@ -13,7 +13,7 @@ import (
 
 const(
 
-	saveAV=false
+	saveAV=true
 )
 
 var vidx=0
@@ -82,7 +82,25 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 			}
 			continue
 		}
-		if tag.Data[0] == 0x17 && tag.Data[1] == 1 {
+		mediadurationout:=false
+		if this.muxerV!=nil{
+			if this.muxerV.Duration()>this.maxSliceDuration{
+				mediadurationout=true
+			}
+		}
+		if this.muxerA!=nil&&false==mediadurationout{
+			if this.muxerA.Duration()>this.maxSliceDuration{
+				mediadurationout=true
+			}
+		}
+		if (tag.Data[0] == 0x17 && tag.Data[1] == 1){
+			//logger.LOGD("slice key frame")
+		}
+		if mediadurationout{
+			//logger.LOGD("slice duration")
+		}
+		//mediadurationout=false
+		if (tag.Data[0] == 0x17 && tag.Data[1] == 1)||mediadurationout {
 			if this.newslice(tag.TimeStamp) {
 				_, moofmdat, duration, bitrate, err := this.muxerV.Flush()
 				if err != nil {
@@ -91,6 +109,7 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 				this.mpd.SetVideoBitrate(bitrate)
 				this.mpd.AddVideoSlice(duration, moofmdat)
 				if saveAV&&vidx<10{
+
 					fp,_:=os.Create("v"+strconv.Itoa(vidx)+".mp4")
 					vidx++
 					defer fp.Close()

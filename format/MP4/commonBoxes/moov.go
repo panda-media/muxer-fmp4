@@ -13,13 +13,13 @@ import (
 func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, arraysAudio, arraysVideo *MOOV_ARRAYS) (box *MP4Box, err error) {
 
 	timestamp := uint64(time.Now().Unix())
-	timestamp += 0x83aaef00 //1900 to 1970
+	timestamp +=0x7c0f4700  //1900 to 1970   0x83aaef00
 	box, err = NewMP4Box("moov")
 	if err != nil {
 		return
 	}
 	//mvhd
-	param_mvhd := &mvhdPram{version: 1,
+	param_mvhd := &mvhdPram{version: 0,
 		creation_time:     timestamp,
 		modification_time: timestamp,
 		duration:          durationMS,
@@ -46,17 +46,17 @@ func moovBox(durationMS uint64, audioHeader, videoHeader *AVPacket.MediaPacket, 
 			TRACK_AUDIO,
 			1,
 			audioSampleSize,
-			0,
-			0x1001,
+			1,
+			0x1000,
 		}
 	}
 	if videoHeader != nil {
 		param_trex_video = &trexParam{
 			TRACK_VIDEO,
 			1,
-			0x3e8,
+			1,
+			1,
 			0,
-			0x10001,
 		}
 	}
 	mvex, err := mvexBox(param_trex_audio, param_trex_video)

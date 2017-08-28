@@ -34,7 +34,7 @@ func mdhdBox(param *mdhdParam) (box *MP4Box, err error) {
 		box.Push4Bytes(param.timescale)
 		box.Push4Bytes(uint32(param.duration))
 	}
-	box.Push4Bytes(0x55c40000)
+	box.Push4Bytes(0x15c70000)
 
 	return
 }

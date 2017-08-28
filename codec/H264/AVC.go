@@ -29,7 +29,8 @@ func (this *AVCDecoderConfigurationRecord) AVCData() []byte {
 	writer.WriteByte(this.AVCProfileIndication)
 	writer.WriteByte(this.Profile_compatibility)
 	writer.WriteByte(this.AVCLevelIndication)
-	writer.WriteByte(0xfc | this.LengthSizeMinusOne)
+	//writer.WriteByte(0xfc | this.LengthSizeMinusOne)
+	writer.WriteByte(0xff)
 	writer.WriteByte(0xe0 | byte(this.NumOfSequenceParameterSets))
 	writeSizeDataList(writer, this.SPS)
 	writer.WriteByte(byte(this.NumOfPictureParameterSets))
@@ -159,6 +160,9 @@ func (this *AVCDecoderConfigurationRecord) AddSPS(sps []byte) {
 	this.SPS.PushBack(sps)
 	this.NumOfSequenceParameterSets = this.SPS.Len()
 	_, _, _, this.Chroma_format_idc, this.Bit_depth_luma_minus8, this.Bit_depth_chroma_minus8 = DecodeSPS(sps)
+	this.AVCProfileIndication=sps[1]
+	this.Profile_compatibility=sps[2]
+	this.AVCLevelIndication=sps[3]
 }
 
 func (this *AVCDecoderConfigurationRecord) AddPPS(pps []byte) {

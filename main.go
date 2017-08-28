@@ -51,13 +51,13 @@ func TestFMP4FromFlvFile(fileName string) {
 	}
 	var err error
 	mux := MP4.NewMP4Muxer()
-	err = mux.SetAudioHeader(audioHeader)
-	//err = mux.SetVideoHeader(videoHeader)
+	//err = mux.SetAudioHeader(audioHeader)
+	err = mux.SetVideoHeader(videoHeader)
 	if err != nil {
 		logger.LOGE(err.Error())
 	}
 
-	fp, err := os.Create("fmp4A.mp4")
+	fp, err := os.Create("fmp4V.mp4")
 	if err != nil {
 		logger.LOGE(err.Error())
 		return
@@ -82,7 +82,7 @@ func TestFMP4FromFlvFile(fileName string) {
 		return
 	}
 	logger.LOGD(duration, bitrate)
-	if true {
+	if false {
 		fp.Write(sidx)
 	}
 	fp.Write(moofmdat)

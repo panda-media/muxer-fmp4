@@ -11,7 +11,7 @@ func trakBox(packet *AVPacket.MediaPacket, arrays *MOOV_ARRAYS, timestamp, durat
 	}
 	//tkhd
 	param_tkhd := &tkhdParam{}
-	param_tkhd.version = 1
+	param_tkhd.version = 0
 	param_tkhd.creation_time = timestamp
 	param_tkhd.modification_time = timestamp
 	param_tkhd.duration = duration

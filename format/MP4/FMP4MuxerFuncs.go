@@ -82,6 +82,10 @@ func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte, duration, bitrate int, 
 	return
 }
 
+func (this *FMP4Muxer)Duration()int{
+	return int(this.timeLastMS-this.timeSidxMS)
+}
+
 func (this *FMP4Muxer) sliceKeyFrame() (err error) {
 	defer func() {
 		this.timeSlicedMS = this.timeLastMS

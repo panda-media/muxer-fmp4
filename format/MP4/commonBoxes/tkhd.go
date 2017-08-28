@@ -23,7 +23,7 @@ func tkhdBox(param *tkhdParam) (box *MP4Box, err error) {
 	if err != nil {
 		return
 	}
-	box.SetVersionFlags(param.version, 1)
+	box.SetVersionFlags(param.version, 7)
 	if param.version == 1 {
 		box.Push8Bytes(param.creation_time)
 		box.Push8Bytes(param.modification_time)
