@@ -9,11 +9,13 @@ import (
 	"logger"
 	"os"
 	"strconv"
+	"strings"
+	"fmt"
 )
 
 const(
 
-	saveAV=true
+	saveAV=false
 )
 
 var vidx=0
@@ -181,6 +183,27 @@ func (this *DASHSlicer) AddAACFrame(data []byte) (err error) {
 
 func (this *DASHSlicer) GetLastedMPD() (data []byte, err error) {
 	data,err=this.mpd.GetMPDXML()
+	return
+}
+
+func (this *DASHSlicer)GetVideoData(param string)(data []byte,err error){
+	if strings.Contains(param,"_init_"){
+		data,err=this.muxerV.GetInitSegment()
+	}else{
+		id:=0
+		logger.LOGD(id)
+		fmt.Scanf("video_video0_%d_mp4.m4s",&id)
+		logger.LOGD(id)
+	}
+	return
+}
+
+func (this *DASHSlicer)GetAudioData(param string)(data []byte,err error){
+	if strings.Contains(param,"_init_"){
+		data,err=this.muxerA.GetInitSegment()
+	}else{
+
+	}
 	return
 }
 

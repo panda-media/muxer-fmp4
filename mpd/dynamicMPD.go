@@ -8,6 +8,7 @@ import (
 	"sync"
 	"encoding/xml"
 	"time"
+	"logger"
 )
 const(
 
@@ -219,9 +220,10 @@ func (this *MPDDynamic)GetMPDXML()(data []byte,err error){
 
 	body,err:=xml.Marshal(mpd)
 	if err==nil{
-		data=make([]byte,len(body)+len(xml.Header))
-		copy(data,[]byte(xml.Header))
-		copy(data[len([]byte(xml.Header)):],body)
+		header:=`<?xml version="1.0" encoding="UTF-8"?>`
+		data=make([]byte,len(body)+len(header))
+		copy(data,[]byte(header))
+		copy(data[len([]byte(header)):],body)
 	}
 	return
 }
@@ -342,10 +344,14 @@ func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
 	segmentTimeLine.S=make([]SegmentTimelineDesc,this.audioKeys.Len())
 	for e,idx:=this.audioKeys.Front(),0;e!=nil;e=e.Next(){
 		k:=e.Value.(int64)
-		if idx==0{
-			segmentTimeLine.S[idx].T=int(this.audioData[k].t&0xffffffff)
+		v:=this.audioData[k]
+		if nil==v{
+			logger.LOGF(k,this.audioData)
 		}
-		segmentTimeLine.S[idx].D=this.audioData[k].d
+		if idx==0{
+			segmentTimeLine.S[idx].T=int(v.t&0xffffffff)
+		}
+		segmentTimeLine.S[idx].D=v.d
 		idx++
 	}
 	ada.SegmentTemplate.SegmentTimeline=segmentTimeLine
