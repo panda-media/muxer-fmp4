@@ -11,11 +11,12 @@ import (
 	"strconv"
 	"strings"
 	"fmt"
+	"wssAPI"
 )
 
 const(
 
-	saveAV=false
+	saveAV=true
 )
 
 var vidx=0
@@ -77,32 +78,17 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 			this.videoHeaderMuxed = true
 
 			if saveAV{
-				fp,_:=os.Create("initV.mp4")
+				wssAPI.CreateDirectory("dashClicer")
+				fp,_:=os.Create("dashClicer/initV.mp4")
 				defer fp.Close()
 				initV,_:=this.muxerV.GetInitSegment()
 				fp.Write(initV)
 			}
 			continue
 		}
-		mediadurationout:=false
-		if this.muxerV!=nil{
-			if this.muxerV.Duration()>this.maxSliceDuration{
-				mediadurationout=true
-			}
-		}
-		if this.muxerA!=nil&&false==mediadurationout{
-			if this.muxerA.Duration()>this.maxSliceDuration{
-				mediadurationout=true
-			}
-		}
-		if (tag.Data[0] == 0x17 && tag.Data[1] == 1){
-			//logger.LOGD("slice key frame")
-		}
-		if mediadurationout{
-			//logger.LOGD("slice duration")
-		}
-		mediadurationout=false
-		if (tag.Data[0] == 0x17 && tag.Data[1] == 1)||mediadurationout {
+
+
+		if (tag.Data[0] == 0x17 && tag.Data[1] == 1) {
 			if this.newslice(tag.TimeStamp) {
 				_, moofmdat, duration, bitrate, err := this.muxerV.Flush()
 				if err != nil {
@@ -112,7 +98,7 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 				this.mpd.AddVideoSlice(duration, moofmdat)
 				if saveAV&&vidx<10{
 
-					fp,_:=os.Create("v"+strconv.Itoa(vidx)+".mp4")
+					fp,_:=os.Create("dashClicer/v"+strconv.Itoa(vidx)+".mp4")
 					vidx++
 					defer fp.Close()
 					fp.Write(moofmdat)
@@ -127,7 +113,7 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 					this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
 					this.audioFrameCount = 0
 					if saveAV&&aidx<10{
-						fp,_:=os.Create("a"+strconv.Itoa(aidx)+".mp4")
+						fp,_:=os.Create("dashClicer/a"+strconv.Itoa(aidx)+".mp4")
 						aidx++
 						defer fp.Close()
 						fp.Write(moofmdat)
@@ -169,7 +155,8 @@ func (this *DASHSlicer) AddAACFrame(data []byte) (err error) {
 			AAC.SAMPLE_SIZE,
 			this.aacProcesser.codec)
 		if saveAV{
-			fp,_:=os.Create("InitA.mp4")
+			wssAPI.CreateDirectory("dashClicer")
+			fp,_:=os.Create("dashClicer/InitA.mp4")
 			defer fp.Close()
 			initA,_:=this.muxerA.GetInitSegment()
 			fp.Write(initA)
@@ -190,10 +177,10 @@ func (this *DASHSlicer)GetVideoData(param string)(data []byte,err error){
 	if strings.Contains(param,"_init_"){
 		data,err=this.muxerV.GetInitSegment()
 	}else{
-		id:=0
+		id:=int64(0)
+		fmt.Sscanf(param,"video_video0_%d_mp4.m4s",&id)
 		logger.LOGD(id)
-		fmt.Scanf("video_video0_%d_mp4.m4s",&id)
-		logger.LOGD(id)
+		data,err=this.mpd.GetVideoSlice(id)
 	}
 	return
 }
@@ -202,7 +189,10 @@ func (this *DASHSlicer)GetAudioData(param string)(data []byte,err error){
 	if strings.Contains(param,"_init_"){
 		data,err=this.muxerA.GetInitSegment()
 	}else{
-
+		id:=int64(0)
+		fmt.Sscanf(param,"audio_audio0_%d_mp4.m4s",&id)
+		logger.LOGD(id)
+		data,err=this.mpd.GetAudioSlice(id)
 	}
 	return
 }
