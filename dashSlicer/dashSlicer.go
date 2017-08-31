@@ -17,6 +17,7 @@ import (
 const(
 
 	saveAV=true
+	maxcount=10000
 )
 
 var vidx=0
@@ -96,7 +97,7 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 				}
 				this.mpd.SetVideoBitrate(bitrate)
 				this.mpd.AddVideoSlice(duration, moofmdat)
-				if saveAV&&vidx<10{
+				if saveAV&&vidx<maxcount{
 
 					fp,_:=os.Create("dashClicer/v"+strconv.Itoa(vidx)+".mp4")
 					vidx++
@@ -112,7 +113,7 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 					this.mpd.SetAudioBitrate(bitrate)
 					this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
 					this.audioFrameCount = 0
-					if saveAV&&aidx<10{
+					if saveAV&&aidx<maxcount{
 						fp,_:=os.Create("dashClicer/a"+strconv.Itoa(aidx)+".mp4")
 						aidx++
 						defer fp.Close()
@@ -179,7 +180,6 @@ func (this *DASHSlicer)GetVideoData(param string)(data []byte,err error){
 	}else{
 		id:=int64(0)
 		fmt.Sscanf(param,"video_video0_%d_mp4.m4s",&id)
-		logger.LOGD(id)
 		data,err=this.mpd.GetVideoSlice(id)
 	}
 	return
@@ -191,7 +191,6 @@ func (this *DASHSlicer)GetAudioData(param string)(data []byte,err error){
 	}else{
 		id:=int64(0)
 		fmt.Sscanf(param,"audio_audio0_%d_mp4.m4s",&id)
-		logger.LOGD(id)
 		data,err=this.mpd.GetAudioSlice(id)
 	}
 	return

@@ -7,6 +7,7 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/MP4/commonBoxes"
 	"strconv"
+	"bytes"
 )
 
 func (this *FMP4Muxer) AddPacket(packet *AVPacket.MediaPacket) (err error) {
@@ -56,6 +57,7 @@ func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte, duration, bitrate int, 
 	defer func() {
 		this.timeSidxMS = this.timeLastMS
 		this.moof_mdat_buf.Reset()
+		this.moof_mdat_buf=new(bytes.Buffer)
 		this.mdat_size = 0
 	}()
 	if this.audio_data.Len() > 0 || this.video_data.Len() > 0 {
