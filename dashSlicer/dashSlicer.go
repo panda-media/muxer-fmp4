@@ -16,8 +16,8 @@ import (
 
 const(
 
-	saveAV=true
-	maxcount=10000
+	saveAV=false
+	maxcount=10
 )
 
 var vidx=0

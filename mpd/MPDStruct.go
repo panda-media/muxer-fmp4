@@ -17,10 +17,14 @@ const (
 
 type MPD struct {
 	Id                         string                  `xml:"id,attr,omitempty"`
+	Xmlns                      string                  `xml:"xmlns,attr"`
+	Xmlns_xsi                  string                  `xml:"xmlns:xsi,attr"`
+	Xmlns_xlink                string                  `xml:"xmlns:xlink,attr"`
+	Xsi_schemaLocation         string                  `xml:"xsi:schemaLocation,attr"`
 	Profiles                   string                  `xml:"profiles,attr"`
 	Type                       string                  `xml:"type,attr,omitempty"`
-	AvailabilityStartTime      string                  `xml:"availabilityStartTime,attr,omitempty"`//earliest availability time in UTC
-	PublishTime                string                  `xml:"publishTime,attr,omitempty"` //MPD generated timestamp
+	AvailabilityStartTime      string                  `xml:"availabilityStartTime,attr,omitempty"` //earliest availability time in UTC
+	PublishTime                string                  `xml:"publishTime,attr,omitempty"`           //MPD generated timestamp
 	MediaPresentationDuration  string                  `xml:"mediaPresentationDuration,attr,omitempty"`
 	AvailabilityEndTime        string                  `xml:"availabilityEndTime,attr,omitempty"`
 	MinimumUpdatePeriod        string                  `xml:"minimumUpdatePeriod,attr,omitempty"`        //next time to update mpd
@@ -29,7 +33,6 @@ type MPD struct {
 	SuggestedPresentationDelay string                  `xml:"suggestedPresentationDelay,attr,omitempty"` //suggested delay
 	MaxSegmentDuration         string                  `xml:"maxSegmentDuration,attr,omitempty"`
 	MaxSubsegmentDuration      string                  `xml:"maxSubsegmentDuration,attr,omitempty"`
-	Xmlns                      string                  `xml:"xmlns,attr"`
 	ProgramInformation         []ProgramInformationXML `xml:"ProgramInformation,omitempty"`
 	BaseURL                    []BaseURLXML            `xml:"BaseURL,omitempty"`
 	Location                   []string                `xml:"Location,omitempty"`
@@ -82,26 +85,32 @@ type AdaptationSetXML struct {
 	Par                       string                        `xml:"par,attr,omitempty"`
 	MinBandwidth              string                        `xml:"minBandwidth,attr,omitempty"`
 	MaxBandwidth              string                        `xml:"maxBandwidth,attr,omitempty"`
-	Width                     int                        `xml:"width,attr,omitempty"`
-	Height                    int                        `xml:"height,attr,omitempty"`
-	FrameRate                 int                        `xml:"frameRate,attr,omitempty"`
+	Width                     int                           `xml:"width,attr,omitempty"`
+	Height                    int                           `xml:"height,attr,omitempty"`
+	FrameRate                 int                           `xml:"frameRate,attr,omitempty"`
 	SegmentAlignment          bool                          `xml:"segmentAlignment,attr,omitempty"`
-	StartWithSAP				int `xml:"startWithSAP,attr,omitempty"`
+	StartWithSAP              int                           `xml:"startWithSAP,attr,omitempty"`
 	SubsegmentAlignment       bool                          `xml:"subsegmentAlignment,attr,omitempty"`
 	SubsegmentStartsWithSAP   int                           `xml:"subsegmentStartsWithSAP,attr,omitempty"`
 	MimeType                  string                        `xml:"mimeType,attr"`
 	Codecs                    string                        `xml:"codecs,attr,omitempty"`
+	Role *RoleXML `xml:"Role,omitempty"`
 	AudioChannelConfiguration *AudioChannelConfigurationXML `xml:"AudioChannelConfiguration,omitempty"`
 	SegmentTemplate           SegmentTemplateXML            `xml:"SegmentTemplate"`
 	Representation            []RepresentationXML           `xml:"Representation,omitempty"`
+}
+
+type RoleXML struct {
+	SchemeIdUri string `xml:"schemeIdUri,attr"`
+	Value string `xml:"value,attr"`
 }
 
 type SegmentTemplateXML struct {
 	Media           string              `xml:"media,attr"`
 	Initialization  string              `xml:"initialization,attr"`
 	Duration        *int                `xml:"duration,attr,omitempty"`
-	StartNumber     int              `xml:"startNumber,attr,omitempty"`
-	TimeScale       int              `xml:"timescale,attr"`
+	StartNumber     int                 `xml:"startNumber,attr,omitempty"`
+	TimeScale       int                 `xml:"timescale,attr"`
 	SegmentTimeline *SegmentTimelineXML `xml:"SegmentTimeline,omitempty"`
 }
 
@@ -110,18 +119,20 @@ type SegmentTimelineXML struct {
 }
 
 type SegmentTimelineDesc struct {
-	T int `xml:"t,attr,omitempty"` //time
+	//T int `xml:"t,attr,omitempty"` //time
+	T int `xml:"t,attr"`           //time
 	D int `xml:"d,attr"`           //duration
 	R int `xml:"r,attr,omitempty"` //repreat count default 0
 }
 
 type RepresentationXML struct {
 	Id                string `xml:"id,attr"`
-	Bandwidth         int `xml:"bandwidth,attr"`
-	Width             int `xml:"width,attr,omitempty"`
-	Height            int `xml:"height,attr,omitempty"`
-	FrameRate         int `xml:"frameRate,attr,omitempty"`
-	AudioSamplingRate int `xml:"audioSamplingRate,attr,omitempty"`
+	Codecs                    string                        `xml:"codecs,attr,omitempty"`
+	Bandwidth         int    `xml:"bandwidth,attr"`
+	Width             int    `xml:"width,attr,omitempty"`
+	Height            int    `xml:"height,attr,omitempty"`
+	FrameRate         int    `xml:"frameRate,attr,omitempty"`
+	AudioSamplingRate int    `xml:"audioSamplingRate,attr,omitempty"`
 }
 
 type AudioChannelConfigurationXML struct {

@@ -9,6 +9,7 @@ import (
 	"encoding/xml"
 	"time"
 	"logger"
+	"github.com/panda-media/muxer-fmp4/utils"
 )
 const(
 
@@ -220,7 +221,8 @@ func (this *MPDDynamic)GetMPDXML()(data []byte,err error){
 
 	body,err:=xml.Marshal(mpd)
 	if err==nil{
-		header:=`<?xml version="1.0" encoding="UTF-8"?>`
+		header:=`<?xml version="1.0" encoding="UTF-8"?>`+ "\n"
+		body=utils.FormatXML(body)
 		data=make([]byte,len(body)+len(header))
 		copy(data,[]byte(header))
 		copy(data[len([]byte(header)):],body)
@@ -232,7 +234,9 @@ func (this *MPDDynamic)mpdAttrs(mpd *MPD){
 	mpd.Xmlns=MPDXMLNS
 	mpd.Profiles=ProfileISOLive
 	mpd.Type=dynamicMPD
-
+	mpd.Xmlns_xlink="http://www.w3.org/1999/xlink"
+	mpd.Xmlns_xsi="http://www.w3.org/2001/XMLSchema-instance"
+	mpd.Xsi_schemaLocation="urn:mpeg:DASH:schema:MPD:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd"
 	timestamp:=time.Now()
 
 	mpd.PublishTime=timestamp.Format("2006-01-02T15:04:05.000Z")
@@ -274,10 +278,10 @@ func (this *MPDDynamic)mpdAttrs(mpd *MPD){
 
 func (this *MPDDynamic)adaptationSetVideo(period *PeriodXML){
 	ada:=AdaptationSetXML{}
-
+	content type
 	ada.Id="0"
 	ada.MimeType="video/mp4"
-	ada.Codecs=this.vide.codecs
+	//ada.Codecs=this.vide.codecs
 	ada.Width=this.vide.width
 	ada.Height=this.vide.height
 	ada.FrameRate=this.vide.frameRate
@@ -286,9 +290,15 @@ func (this *MPDDynamic)adaptationSetVideo(period *PeriodXML){
 	ada.SubsegmentAlignment=true
 	ada.SubsegmentStartsWithSAP=1
 
+	role:=&RoleXML{}
+	role.SchemeIdUri="urn:mpeg:dash:role:2011"
+	role.Value="main"
+	ada.Role=role
+
 	ada.Representation=make([]RepresentationXML,0)
 	representation:=RepresentationXML{}
 	representation.Bandwidth=this.vide.bitrate
+	representation.Codecs=this.vide.codecs
 	representation.Id=IdVideo
 	ada.Representation=append(ada.Representation, representation)
 
@@ -299,10 +309,7 @@ func (this *MPDDynamic)adaptationSetVideo(period *PeriodXML){
 	segmentTimeLine.S=make([]SegmentTimelineDesc,this.videoKeys.Len())
 	for e,idx:=this.videoKeys.Front(),0;e!=nil;e=e.Next(){
 		k:=e.Value.(int64)
-		if idx==0{
-			segmentTimeLine.S[idx].T=int(this.videoData[k].t&0xffffffff)
-
-		}
+		segmentTimeLine.S[idx].T=int(this.videoData[k].t&0xffffffff)
 		segmentTimeLine.S[idx].D=this.videoData[k].d
 		idx++
 	}
@@ -317,7 +324,7 @@ func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
 	ada:=AdaptationSetXML{}
 	ada.Id="1"
 	ada.MimeType="audio/mp4"
-	ada.Codecs=this.audi.codecs
+	//ada.Codecs=this.audi.codecs
 	ada.Lang="eng"
 	ada.SegmentAlignment=true
 	ada.StartWithSAP=1
@@ -328,6 +335,7 @@ func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
 	representation:=RepresentationXML{}
 	representation.Bandwidth=this.audi.bandwidth
 	representation.Id=IdAudio
+	representation.Codecs=this.audi.codecs
 	representation.AudioSamplingRate=this.audi.sampleRate
 	ada.Representation=append(ada.Representation, representation)
 
@@ -336,6 +344,11 @@ func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
 	audioChannelConfiguration.Value=this.audi.channel
 	audioChannelConfiguration.SchemeIdUri=SchemeIdUri
 	ada.AudioChannelConfiguration=audioChannelConfiguration
+
+	role:=&RoleXML{}
+	role.SchemeIdUri="urn:mpeg:dash:role:2011"
+	role.Value="main"
+	ada.Role=role
 
 	ada.SegmentTemplate.TimeScale=this.audi.sampleRate
 	ada.SegmentTemplate.Media="audio_$RepresentationID$_$Time$_mp4.m4s"
@@ -348,9 +361,10 @@ func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
 		if nil==v{
 			logger.LOGF(k,this.audioData)
 		}
-		if idx==0{
-			segmentTimeLine.S[idx].T=int(v.t&0xffffffff)
-		}
+		//if idx==0{
+		//	segmentTimeLine.S[idx].T=int(v.t&0xffffffff)
+		//}
+		segmentTimeLine.S[idx].T=int(v.t&0xffffffff)
 		segmentTimeLine.S[idx].D=v.d
 		idx++
 	}
