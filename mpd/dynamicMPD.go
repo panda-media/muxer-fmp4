@@ -108,7 +108,7 @@ func (this *MPDDynamic) SetVideoInfo(timescale, width, height, frameRate, bandwi
 		frameRate,
 		bandwidth,
 		codecs}
-	this.mediaDataStartTime=time.Now()
+	this.mediaDataStartTime=time.Now().UTC()
 	return
 }
 
@@ -141,7 +141,7 @@ func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (err error) {
 	defer this.muxVideo.Unlock()
 	segment_time_data := &segmentTimeData{}
 	segment_time_data.t = this.lastVideoTimestamp
-	segment_time_data.d = durationMS * this.vide.timeScale / 1000
+	segment_time_data.d = durationMS * (this.vide.timeScale / 1000)
 	segment_time_data.data = data
 	this.videoData[this.lastVideoTimestamp] = segment_time_data
 	this.videoKeys.PushBack(this.lastVideoTimestamp)
@@ -203,6 +203,9 @@ func (this *MPDDynamic) GetAudioSlice(timestamp int64) (data []byte, err error) 
 }
 
 func (this *MPDDynamic)GetMPDXML()(data []byte,err error){
+	if this.vide==nil||this.audi==nil{
+		return nil,errors.New("not inited")
+	}
 	mpd:=&MPD{}
 	this.muxVideo.RLock()
 	defer this.muxVideo.RUnlock()
@@ -237,33 +240,34 @@ func (this *MPDDynamic)mpdAttrs(mpd *MPD){
 	mpd.Xmlns_xlink="http://www.w3.org/1999/xlink"
 	mpd.Xmlns_xsi="http://www.w3.org/2001/XMLSchema-instance"
 	mpd.Xsi_schemaLocation="urn:mpeg:DASH:schema:MPD:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd"
-	timestamp:=time.Now()
+	timestamp:=time.Now().UTC()
 
 	mpd.PublishTime=timestamp.Format("2006-01-02T15:04:05.000Z")
 
 	mpd.AvailabilityStartTime=func()(availablityStartTime string){
-
-		if this.videoKeys.Len()==0{
-			availablityStartTime=""
-		}else{
-			videoData:=this.videoData[this.videoKeys.Front().Value.(int64)]
-			tmpTime:=this.mediaDataStartTime.Add(time.Millisecond*time.Duration(videoData.t))
-			availablityStartTime=tmpTime.Format("2006-01-02T15:04:05.000Z")
-		}
+		availablityStartTime=this.mediaDataStartTime.Format("2006-01-02T15:04:05.000Z")
 		return
 	}()
 	mpd.MinimumUpdatePeriod=this.generatePTimeMillSec(this.minBufferMS)
-	mpd.MinBufferTime=this.generatePTimeMillSec(this.minBufferMS)
-	mpd.TimeShiftBufferDepth=func()(timeShiftBufferDepth string){
-		totalDuration:=0
-		for _,v:= range this.videoData{
-			totalDuration+=v.d
+	minBufferTime:=0xffffffff
+	for _,e:= range this.videoData{
+		if minBufferTime>e.d{
+			minBufferTime=e.d
 		}
-		timeShiftBufferDepth=this.generatePTimeMillSec(totalDuration)
-		return
-	}()
+	}
+	minBufferTime=minBufferTime/(this.vide.timeScale/1000)
+	mpd.MinBufferTime=this.generatePTimeMillSec(minBufferTime)
+	//mpd.TimeShiftBufferDepth=func()(timeShiftBufferDepth string){
+	//	totalDuration:=0
+	//	for _,v:= range this.videoData{
+	//		totalDuration+=v.d
+	//	}
+	//	timeShiftBufferDepth=this.generatePTimeMillSec(totalDuration/(this.vide.timeScale/1000))
+	//	return
+	//}()
+
 	mpd.SuggestedPresentationDelay= func() (suggestedPresentationDelay string){
-		delayCounts:=2
+		delayCounts:=this.maxSliceCount-2
 		delay:=0
 		if this.videoKeys.Len()>delayCounts{
 			e:=this.videoKeys.Front()
@@ -271,14 +275,14 @@ func (this *MPDDynamic)mpdAttrs(mpd *MPD){
 				delay+=this.videoData[e.Value.(int64)].d
 			}
 		}
-		suggestedPresentationDelay=this.generatePTimeMillSec(delay)
+		suggestedPresentationDelay=this.generatePTimeMillSec(delay/(this.vide.timeScale/1000))
 		return
 	}()
 }
 
 func (this *MPDDynamic)adaptationSetVideo(period *PeriodXML){
 	ada:=AdaptationSetXML{}
-	content type
+	ada.ContentType="video"
 	ada.Id="0"
 	ada.MimeType="video/mp4"
 	//ada.Codecs=this.vide.codecs
@@ -322,6 +326,7 @@ func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
 	this.muxAudio.RLock()
 	defer this.muxAudio.RUnlock()
 	ada:=AdaptationSetXML{}
+	ada.ContentType="audio"
 	ada.Id="1"
 	ada.MimeType="audio/mp4"
 	//ada.Codecs=this.audi.codecs

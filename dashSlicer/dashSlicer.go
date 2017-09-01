@@ -74,7 +74,7 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 				err = errors.New("set video header :" + err.Error())
 				return
 			}
-			this.mpd.SetVideoInfo(1000, this.h264Processer.width, this.h264Processer.height, this.h264Processer.fps,
+			this.mpd.SetVideoInfo(90000, this.h264Processer.width, this.h264Processer.height, this.h264Processer.fps,
 				1, this.h264Processer.codec)
 			this.videoHeaderMuxed = true
 
