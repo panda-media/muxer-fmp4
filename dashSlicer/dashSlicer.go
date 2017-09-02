@@ -196,27 +196,3 @@ func (this *DASHSlicer)GetAudioData(param string)(data []byte,err error){
 	return
 }
 
-func (this *DASHSlicer) GetMediaDataByIndex(idx int, audio bool) (data []byte, err error) {
-
-	return
-}
-
-func (this *DASHSlicer) GetInitA() (data []byte, err error) {
-	if this.audioHeaderMuxed {
-
-		data, err = this.muxerA.GetInitSegment()
-		return
-	} else {
-		err = errors.New("audio not founded")
-	}
-	return
-}
-func (this *DASHSlicer) GetInitV() (data []byte, err error) {
-	if this.videoHeaderMuxed {
-		data, err = this.muxerV.GetInitSegment()
-		return
-	} else {
-		err = errors.New("video header not founded")
-	}
-	return
-}

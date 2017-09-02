@@ -1,0 +1,51 @@
+<component name="libraryTable">
+  <library name="GOPATH &lt;muxer-fmp4&gt;">
+    <CLASSES>
+      <root url="file://E:/work/wss/src/streamServer" />
+      <root url="file://E:/work/wss/src/svrBus" />
+      <root url="file://E:/work/wss/src/webSocketService" />
+      <root url="file://E:/work/wss/src/logger" />
+      <root url="file://E:/work/wss/src/DASH" />
+      <root url="file://E:/work/wss/src/HLSService" />
+      <root url="file://E:/work/wss/src/.git" />
+      <root url="file://E:/work/wss/src/mediaTypes" />
+      <root url="file://E:/work/wss/src/RTSPService" />
+      <root url="file://E:/work/wss/src/streamer" />
+      <root url="file://E:/work/wss/src/websocketClient" />
+      <root url="file://E:/work/wss/src/HTTPMUX" />
+      <root url="file://E:/work/wss/src/wssAPI" />
+      <root url="file://E:/work/wss/src/backend" />
+      <root url="file://E:/work/wss/src/RTMPService" />
+      <root url="file://$PROJECT_DIR$/../.." />
+      <root url="file://E:/work/wss/src/events" />
+      <root url="file://$PROJECT_DIR$/../../../goWebProgram" />
+      <root url="file://E:/work/wss/src/player" />
+      <root url="file://$PROJECT_DIR$/../../../beego1" />
+    </CLASSES>
+    <SOURCES>
+      <root url="file://E:/work/wss/src/streamServer" />
+      <root url="file://E:/work/wss/src/svrBus" />
+      <root url="file://E:/work/wss/src/webSocketService" />
+      <root url="file://E:/work/wss/src/logger" />
+      <root url="file://E:/work/wss/src/DASH" />
+      <root url="file://E:/work/wss/src/HLSService" />
+      <root url="file://E:/work/wss/src/.git" />
+      <root url="file://E:/work/wss/src/mediaTypes" />
+      <root url="file://E:/work/wss/src/RTSPService" />
+      <root url="file://E:/work/wss/src/streamer" />
+      <root url="file://E:/work/wss/src/websocketClient" />
+      <root url="file://E:/work/wss/src/HTTPMUX" />
+      <root url="file://E:/work/wss/src/wssAPI" />
+      <root url="file://E:/work/wss/src/backend" />
+      <root url="file://E:/work/wss/src/RTMPService" />
+      <root url="file://$PROJECT_DIR$/../.." />
+      <root url="file://E:/work/wss/src/events" />
+      <root url="file://$PROJECT_DIR$/../../../goWebProgram" />
+      <root url="file://E:/work/wss/src/player" />
+      <root url="file://$PROJECT_DIR$/../../../beego1" />
+    </SOURCES>
+    <excluded>
+      <root url="file://$PROJECT_DIR$" />
+    </excluded>
+  </library>
+</component>
