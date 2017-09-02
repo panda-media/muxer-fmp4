@@ -6,22 +6,10 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/MP4"
 	"github.com/panda-media/muxer-fmp4/mpd"
-	"logger"
-	"os"
-	"strconv"
 	"strings"
 	"fmt"
-	"wssAPI"
 )
 
-const(
-
-	saveAV=false
-	maxcount=10
-)
-
-var vidx=0
-var aidx=0
 type DASHSlicer struct {
 	minSliceDuration    int
 	maxSliceDuration    int
@@ -78,13 +66,6 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 				1, this.h264Processer.codec)
 			this.videoHeaderMuxed = true
 
-			if saveAV{
-				wssAPI.CreateDirectory("dashClicer")
-				fp,_:=os.Create("dashClicer/initV.mp4")
-				defer fp.Close()
-				initV,_:=this.muxerV.GetInitSegment()
-				fp.Write(initV)
-			}
 			continue
 		}
 
@@ -97,13 +78,7 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 				}
 				this.mpd.SetVideoBitrate(bitrate)
 				this.mpd.AddVideoSlice(duration, moofmdat)
-				if saveAV&&vidx<maxcount{
 
-					fp,_:=os.Create("dashClicer/v"+strconv.Itoa(vidx)+".mp4")
-					vidx++
-					defer fp.Close()
-					fp.Write(moofmdat)
-				}
 				if this.audioHeaderMuxed {
 					_, moofmdat, _, bitrate, er := this.muxerA.Flush()
 					if er != nil {
@@ -113,20 +88,9 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 					this.mpd.SetAudioBitrate(bitrate)
 					this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
 					this.audioFrameCount = 0
-					if saveAV&&aidx<maxcount{
-						fp,_:=os.Create("dashClicer/a"+strconv.Itoa(aidx)+".mp4")
-						aidx++
-						defer fp.Close()
-						fp.Write(moofmdat)
-					}
+
 				}
-				mpd,err:=this.mpd.GetMPDXML()
-				if err!=nil{
-					logger.LOGF(err.Error())
-				}
-				fp,err:=os.Create("mpd.xml")
-				defer fp.Close()
-				fp.Write(mpd)
+
 			}
 		}
 		err = this.muxerV.AddPacket(tag)
@@ -143,7 +107,6 @@ func (this *DASHSlicer) AddAACFrame(data []byte) (err error) {
 	tag := this.aacProcesser.addFrame(data)
 	if tag == nil {
 		err = errors.New("invalid aac data")
-		logger.LOGD(err.Error())
 		return
 	}
 	if false == this.audioHeaderMuxed {
@@ -155,13 +118,7 @@ func (this *DASHSlicer) AddAACFrame(data []byte) (err error) {
 			this.aacProcesser.asc.Channel(),
 			AAC.SAMPLE_SIZE,
 			this.aacProcesser.codec)
-		if saveAV{
-			wssAPI.CreateDirectory("dashClicer")
-			fp,_:=os.Create("dashClicer/InitA.mp4")
-			defer fp.Close()
-			initA,_:=this.muxerA.GetInitSegment()
-			fp.Write(initA)
-		}
+
 	} else {
 		this.muxerA.AddPacket(tag)
 		this.audioFrameCount++

@@ -8,7 +8,6 @@ import (
 	"sync"
 	"encoding/xml"
 	"time"
-	"logger"
 	"github.com/panda-media/muxer-fmp4/utils"
 )
 const(
@@ -68,8 +67,6 @@ func (this *MPDDynamic) init(minBufferDurationMS, maxSliceCount int) {
 	this.audioKeys = list.New()
 	this.videoData = make(map[int64]*segmentTimeData)
 	this.audioData = make(map[int64]*segmentTimeData)
-	//init availabilityStartTime
-	//this.availabilityStartTime
 }
 func (this *MPDDynamic) generatePTime(year, month, day, hour, minute, sec, mill int) (pt string) {
 	pt = "P"
@@ -257,17 +254,10 @@ func (this *MPDDynamic)mpdAttrs(mpd *MPD){
 	}
 	minBufferTime=minBufferTime/(this.vide.timeScale/1000)
 	mpd.MinBufferTime=this.generatePTimeMillSec(minBufferTime)
-	//mpd.TimeShiftBufferDepth=func()(timeShiftBufferDepth string){
-	//	totalDuration:=0
-	//	for _,v:= range this.videoData{
-	//		totalDuration+=v.d
-	//	}
-	//	timeShiftBufferDepth=this.generatePTimeMillSec(totalDuration/(this.vide.timeScale/1000))
-	//	return
-	//}()
+
 
 	mpd.SuggestedPresentationDelay= func() (suggestedPresentationDelay string){
-		delayCounts:=this.maxSliceCount-2
+		delayCounts:=this.maxSliceCount/2
 		delay:=0
 		if this.videoKeys.Len()>delayCounts{
 			e:=this.videoKeys.Front()
@@ -275,6 +265,7 @@ func (this *MPDDynamic)mpdAttrs(mpd *MPD){
 				delay+=this.videoData[e.Value.(int64)].d
 			}
 		}
+		//delay=0
 		suggestedPresentationDelay=this.generatePTimeMillSec(delay/(this.vide.timeScale/1000))
 		return
 	}()
@@ -364,11 +355,8 @@ func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
 		k:=e.Value.(int64)
 		v:=this.audioData[k]
 		if nil==v{
-			logger.LOGF(k,this.audioData)
+			break
 		}
-		//if idx==0{
-		//	segmentTimeLine.S[idx].T=int(v.t&0xffffffff)
-		//}
 		segmentTimeLine.S[idx].T=int(v.t&0xffffffff)
 		segmentTimeLine.S[idx].D=v.d
 		idx++
