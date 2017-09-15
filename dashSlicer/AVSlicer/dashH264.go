@@ -1,4 +1,4 @@
-package dashSlicer
+package AVSlicer
 
 import (
 	"container/list"
@@ -7,7 +7,7 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 )
 
-type dashH264 struct {
+type SlicerH264 struct {
 	sps      []byte
 	pps      []byte
 	sei      []byte
@@ -21,7 +21,7 @@ type dashH264 struct {
 	codec    string
 }
 
-func (this *dashH264) addNals(data []byte) (tags *list.List) {
+func (this *SlicerH264) AddNals(data []byte) (tags *list.List) {
 	nals := this.separateNalus(data)
 	if nals == nil || nals.Len() == 0 {
 		return
@@ -94,7 +94,7 @@ func (this *dashH264) addNals(data []byte) (tags *list.List) {
 	return
 }
 
-func (this *dashH264) separateNalus(data []byte) (nals *list.List) {
+func (this *SlicerH264) separateNalus(data []byte) (nals *list.List) {
 	nalData, dataCur := this.getOneNal1(data[0:])
 	nals = list.New()
 	for nalData != nil && len(nalData) > 0 {
@@ -109,7 +109,7 @@ func (this *dashH264) separateNalus(data []byte) (nals *list.List) {
 }
 
 //separated by 0x00000001 or 0x000001
-func (this *dashH264) getOneNal1(data []byte) (nalData []byte, dataCur int) {
+func (this *SlicerH264) getOneNal1(data []byte) (nalData []byte, dataCur int) {
 	//read start
 	nalStart := 0
 	nalEnd := 0
@@ -159,7 +159,7 @@ func (this *dashH264) getOneNal1(data []byte) (nalData []byte, dataCur int) {
 	return
 }
 
-func (this *dashH264) createAVCTag() (tag *AVPacket.MediaPacket) {
+func (this *SlicerH264) createAVCTag() (tag *AVPacket.MediaPacket) {
 	if nil == this.sps || nil == this.pps {
 		return nil
 	}
@@ -183,7 +183,7 @@ func (this *dashH264) createAVCTag() (tag *AVPacket.MediaPacket) {
 	return
 }
 
-func (this *dashH264) createIdrSliceTag(data []byte) (tag *AVPacket.MediaPacket) {
+func (this *SlicerH264) createIdrSliceTag(data []byte) (tag *AVPacket.MediaPacket) {
 	tag = &AVPacket.MediaPacket{}
 	tag.PacketType = AVPacket.AV_PACKET_TYPE_VIDEO
 	pts, cts, _ := this.nalTimer.AddNal(data)
@@ -209,7 +209,7 @@ func (this *dashH264) createIdrSliceTag(data []byte) (tag *AVPacket.MediaPacket)
 	return
 }
 
-func (this *dashH264) createDPTag(data_dps *list.List) (tag *AVPacket.MediaPacket) {
+func (this *SlicerH264) createDPTag(data_dps *list.List) (tag *AVPacket.MediaPacket) {
 	if nil == data_dps || data_dps.Len() != 3 {
 		return
 	}
@@ -240,4 +240,20 @@ func (this *dashH264) createDPTag(data_dps *list.List) (tag *AVPacket.MediaPacke
 		cur += nalSize
 	}
 	return
+}
+
+func (this *SlicerH264) Width()int{
+	return this.width
+}
+
+func (this *SlicerH264)Height()int{
+	return this.height
+}
+
+func (this *SlicerH264)FPS()int{
+	return this.fps
+}
+
+func (this *SlicerH264)Codec()string{
+	return this.codec
 }

@@ -3,25 +3,54 @@ package example
 import (
 	"github.com/panda-media/muxer-fmp4/codec/H264"
 	"github.com/panda-media/muxer-fmp4/dashSlicer"
-	"logger"
-	"mediaTypes/flv"
+	"log"
 )
 
-func TestDash(inputFileName string) {
-	slicer := dashSlicer.NEWSlicer(true, 1000, 5000, 5)
-	reader := &flv.FlvFileReader{}
-	err := reader.Init(inputFileName)
+type testReceiver struct {
+
+}
+
+func (this *testReceiver)VideoHeaderGenerated(videoHeader []byte){
+	log.Println ("get videoHeader,length:",len(videoHeader))
+}
+func (this *testReceiver)VideoSegmentGenerated(videoSegment []byte,timestamp int64,duration int){
+	log.Println("get video segment,length:",len(videoSegment),"\ttimestamp:",timestamp,"\tduration:",duration)
+}
+func (this *testReceiver)AudioHeaderGenerated(audioHeader []byte){
+	log.Println("get audioHeader,length:",len(audioHeader))
+}
+func (this *testReceiver)AudioSegmentGenerated(audioSegment []byte,timestamp int64,duration int){
+	log.Println("get audio segment,length:",len(audioSegment),"\ttimestamp:",timestamp,"\tduration:",duration)
+}
+
+func FlvFileToFMP4(flvFileName string) {
+	receiver:=&testReceiver{}
+	slicer,err := dashSlicer.NEWSlicer(1000, 5000,5,receiver )
+	if err!=nil{
+		log.Println(err.Error())
+	}
+	reader := &FlvFileReader{}
+	err = reader.Init(flvFileName)
 	if err != nil {
-		logger.LOGE(err.Error())
+		log.Println(err.Error())
 		return
 	}
+
+	defer func(){
+		mpd,err:=slicer.GetMPD()
+		if err!=nil{
+			log.Println(err)
+		}else{
+			log.Println("the last MPD sample:\n",string(mpd))
+		}
+	}()
 	tag, err := reader.GetNextTag()
 	for tag != nil && err == nil {
-		if tag.TagType == flv.FLV_TAG_Video {
+		if tag.TagType == FLV_TAG_Video {
 			if tag.Data[0] == 0x17 && tag.Data[1] == 0 {
 				avc, err := H264.DecodeAVC(tag.Data[5:])
 				if err != nil {
-					logger.LOGE(err.Error())
+					log.Println(err.Error())
 					return
 				}
 				for e := avc.SPS.Front(); e != nil; e = e.Next() {
@@ -59,7 +88,7 @@ func TestDash(inputFileName string) {
 
 			}
 
-		} else if tag.TagType == flv.FLV_TAG_Audio {
+		} else if tag.TagType == FLV_TAG_Audio {
 			slicer.AddAACFrame(tag.Data[2:])
 		}
 		tag, err = reader.GetNextTag()

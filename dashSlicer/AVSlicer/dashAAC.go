@@ -1,4 +1,4 @@
-package dashSlicer
+package AVSlicer
 
 import (
 	"github.com/panda-media/muxer-fmp4/codec/AAC"
@@ -6,14 +6,14 @@ import (
 	"strconv"
 )
 
-type dashAAC struct {
+type SlicerAAC struct {
 	headerDecode bool
 	asc          *AAC.AACAudioSpecificConfig
 	frameCount   int64
 	codec        string
 }
 
-func (this *dashAAC) addFrame(data []byte) (tag *AVPacket.MediaPacket) {
+func (this *SlicerAAC) AddFrame(data []byte) (tag *AVPacket.MediaPacket) {
 	if data == nil || len(data) == 0 {
 		return
 	}
@@ -45,8 +45,20 @@ func (this *dashAAC) addFrame(data []byte) (tag *AVPacket.MediaPacket) {
 	return
 }
 
-func (this *dashAAC) calNextTimeStamp() (timestamp uint32) {
+func (this *SlicerAAC) calNextTimeStamp() (timestamp uint32) {
 	this.frameCount++
 	timestamp = uint32((this.frameCount * 1000 * AAC.SAMPLE_SIZE / int64(this.asc.SampleRate())) & 0xffffffff)
 	return
+}
+
+func (this *SlicerAAC)SampleRate()int{
+	return this.asc.SampleRate()
+}
+
+func (this *SlicerAAC)Channel()int{
+	return this.asc.Channel()
+}
+
+func (this *SlicerAAC)Codec()string{
+	return this.codec
 }

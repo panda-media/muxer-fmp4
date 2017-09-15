@@ -129,7 +129,7 @@ func (this *MPDDynamic) SetAudioBitrate(bitrate int) {
 	this.audi.bandwidth = bitrate
 }
 
-func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (err error) {
+func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (lastTimestamp int64,duration int,err error) {
 	if nil == this.vide {
 		err = errors.New("video info not seted")
 		return
@@ -143,7 +143,8 @@ func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (err error) {
 	this.videoData[this.lastVideoTimestamp] = segment_time_data
 	this.videoKeys.PushBack(this.lastVideoTimestamp)
 
-
+	duration=segment_time_data.d
+	lastTimestamp=this.lastVideoTimestamp
 	this.lastVideoTimestamp += int64(segment_time_data.d)
 	if this.videoKeys.Len() > this.maxSliceCount {
 		k := this.videoKeys.Front().Value.(int64)
@@ -153,7 +154,7 @@ func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (err error) {
 	return
 }
 
-func (this *MPDDynamic) AddAudioSlice(frameCount int, data []byte) (err error) {
+func (this *MPDDynamic) AddAudioSlice(frameCount int, data []byte) (lastTimestamp int64,duration int,err error) {
 	if nil == this.audi {
 		err = errors.New("audio info not seted")
 		return
@@ -166,6 +167,9 @@ func (this *MPDDynamic) AddAudioSlice(frameCount int, data []byte) (err error) {
 	segment_time_data.data = data
 	this.audioData[this.lastAudioTimestamp] = segment_time_data
 	this.audioKeys.PushBack(this.lastAudioTimestamp)
+
+	lastTimestamp=this.lastAudioTimestamp
+	duration=segment_time_data.d
 	this.lastAudioTimestamp += int64(segment_time_data.d)
 	if this.audioKeys.Len() > this.maxSliceCount {
 		k := this.audioKeys.Front().Value.(int64)
