@@ -8,7 +8,6 @@ import (
 	"sync"
 	"encoding/xml"
 	"time"
-	"logger"
 	"github.com/panda-media/muxer-fmp4/utils"
 )
 const(
@@ -364,7 +363,7 @@ func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
 		k:=e.Value.(int64)
 		v:=this.audioData[k]
 		if nil==v{
-			logger.LOGF(k,this.audioData)
+			return
 		}
 		//if idx==0{
 		//	segmentTimeLine.S[idx].T=int(v.t&0xffffffff)
