@@ -153,7 +153,6 @@ func (this *DASHSlicer)GetAudioData(param string)(data []byte,err error){
 	return
 }
 
-<<<<<<< HEAD
 
 func (this *DASHSlicer) GetInitA() (data []byte, err error) {
 	if this.audioHeaderMuxed {
@@ -180,5 +179,3 @@ func (this *DASHSlicer) GetMediaDataByIndex(idx int, audio bool) (data []byte, e
 
 	return
 }
-=======
->>>>>>> a3faf8d7371bfe6db0af4c959a0d3c2572e8f4d3

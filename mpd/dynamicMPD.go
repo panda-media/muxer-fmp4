@@ -355,11 +355,7 @@ func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
 		k:=e.Value.(int64)
 		v:=this.audioData[k]
 		if nil==v{
-<<<<<<< HEAD
-			return
-=======
 			break
->>>>>>> a3faf8d7371bfe6db0af4c959a0d3c2572e8f4d3
 		}
 		segmentTimeLine.S[idx].T=int(v.t&0xffffffff)
 		segmentTimeLine.S[idx].D=v.d
