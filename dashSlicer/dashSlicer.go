@@ -210,3 +210,46 @@ func (this *DASHSlicer) GetAudioData(param string) (data []byte, err error) {
 	}
 	return
 }
+
+//notice the slicer stream end
+func (this *DASHSlicer)EndofStream(){
+	if this.videoHeaderMuxed{
+		//video only or av
+		_, moofmdat, duration, bitrate, err := this.muxerV.Flush()
+		if err != nil {
+			return
+		}
+		this.mpd.SetVideoBitrate(bitrate)
+
+		var timestamp int64
+		var durationMP4 int
+		timestamp, durationMP4, err = this.mpd.AddVideoSlice(duration, moofmdat)
+		this.receiver.VideoSegmentGenerated(moofmdat, timestamp, durationMP4)
+		if this.audioHeaderMuxed {
+			_, moofmdat, _, bitrate, err := this.muxerA.Flush()
+			if err != nil {
+				return
+			}
+
+			this.mpd.SetAudioBitrate(bitrate)
+
+			timestamp, durationMP4, _ := this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
+			this.receiver.AudioSegmentGenerated(moofmdat, timestamp, durationMP4)
+			this.audioFrameCount = 0
+
+		}
+	}else if this.audioHeaderMuxed{
+		//audio only
+		_, moofmdat, _, bitrate, err := this.muxerA.Flush()
+		if err != nil {
+			return
+		}
+
+		this.mpd.SetAudioBitrate(bitrate)
+
+		timestamp, durationMP4, _ := this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
+		this.receiver.AudioSegmentGenerated(moofmdat, timestamp, durationMP4)
+		this.audioFrameCount = 0
+	}
+
+}
