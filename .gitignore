@@ -5,3 +5,5 @@
 .project
 bin/
 pkg/
+debug
+test.flv

@@ -1,8 +1,10 @@
 package AAC
 
 import (
-	"github.com/panda-media/muxer-fmp4/utils"
+	"errors"
 	"strings"
+
+	"github.com/panda-media/muxer-fmp4/utils"
 )
 
 const (
@@ -73,6 +75,32 @@ type AACAudioSpecificConfig struct {
 	channels           int
 	ps                 int
 	frame_length_short int
+}
+
+type ADTSFixedHeader struct {
+	syncword                 int //0xfff
+	id                       int //mpeg version 0 for mpeg-4, 1 for mpeg-2
+	layer                    int //always 00
+	protection_absent        int //1 no crc, 0 crc
+	profile                  int
+	sampling_frequency_index int
+	private_bit              int
+	channel_configuration    int
+	original_copy            int
+	home                     int
+}
+
+type ADTSVarlableHeader struct {
+	copyright_identification_bit       int
+	copyright_identification_start     int
+	aac_frame_length                   int
+	adts_buffer_fullness               int
+	number_of_raw_data_blocks_in_frame int
+}
+
+type ADTSData struct {
+	fixed_header    ADTSFixedHeader
+	varlable_header ADTSVarlableHeader
 }
 
 func parseConfigALS(reader *utils.BitReader, asc *AACAudioSpecificConfig) {
@@ -252,4 +280,26 @@ func ASCForMP4(ascData []byte, useragent string) (cfg []byte) {
 		cfg[3] = 0
 	}
 	return
+}
+
+func ParseAdts(data []byte) (ADTSData, error) {
+	adts := ADTSData{}
+	if len(data) < 7 {
+		return adts, errors.New("not enough data to parse adts")
+	}
+	adts.fixed_header.syncword = int(data[0])<<4 + int(data[1]>>4)
+	if adts.fixed_header.syncword != 0xfff {
+		return adts, errors.New("not adts data")
+	}
+	adts.fixed_header.id = int((data[1] >> 3) & 0x1)
+	adts.fixed_header.layer = int((data[1] >> 1) & 0x3)
+	adts.fixed_header.protection_absent = int(data[1] & 0x1)
+	adts.fixed_header.profile = int(data[2] >> 6)
+	adts.fixed_header.sampling_frequency_index = int((data[2] >> 2) & 0xf)
+	adts.fixed_header.private_bit = int((data[2] >> 1) & 0x1)
+	adts.fixed_header.channel_configuration = int((data[2]&0x1)<<2) + int(data[3]>>6)
+	adts.fixed_header.original_copy = int((data[3] >> 5) & 0x1)
+	adts.fixed_header.home = int((data[3] >> 4) & 0x1)
+
+	return adts, nil
 }
