@@ -261,7 +261,7 @@ func (this *MPDDynamic)mpdAttrs(mpd *MPD){
 
 
 	mpd.SuggestedPresentationDelay= func() (suggestedPresentationDelay string){
-		delayCounts:=this.maxSliceCount/2
+		delayCounts:=this.maxSliceCount/3
 		delay:=0
 		if this.videoKeys.Len()>delayCounts{
 			e:=this.videoKeys.Front()
