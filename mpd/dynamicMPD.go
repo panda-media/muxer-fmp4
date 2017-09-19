@@ -204,7 +204,7 @@ func (this *MPDDynamic) GetAudioSlice(timestamp int64) (data []byte, err error) 
 }
 
 func (this *MPDDynamic)GetMPDXML()(data []byte,err error){
-	if this.vide==nil||this.audi==nil{
+	if this.vide==nil&&this.audi==nil{
 		return nil,errors.New("not inited")
 	}
 	mpd:=&MPD{}
