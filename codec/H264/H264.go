@@ -84,7 +84,7 @@ func (this *H264TimeCalculator) SetSPS(sps []byte) {
 }
 
 func (this *H264TimeCalculator) calFrameTimeStamp() (timestamp int64) {
-	timestamp = this.frame_counter * 2000 / int64(this.sps.time_scale) * int64(this.sps.num_units_in_tick)
+	timestamp = this.frame_counter * 2000* int64(this.sps.num_units_in_tick) / int64(this.sps.time_scale)
 	return
 }
 
