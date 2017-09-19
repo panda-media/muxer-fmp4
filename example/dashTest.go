@@ -25,7 +25,7 @@ func (this *testReceiver)AudioSegmentGenerated(audioSegment []byte,timestamp int
 
 func FlvFileToFMP4(flvFileName string) {
 	receiver:=&testReceiver{}
-	slicer,err := dashSlicer.NEWSlicer(1000, 5000,5,receiver )
+	slicer,err := dashSlicer.NEWSlicer(1000, 5000,5,90000,receiver )
 	if err!=nil{
 		log.Println(err.Error())
 	}

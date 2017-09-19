@@ -34,61 +34,61 @@ func (this *SlicerH264) AddNals(data []byte) (tags *list.List) {
 		if 0 != zero {
 			continue
 		}
-		nalType := nal[0] & 0x1f
-		switch nalType {
-		case H264.NAL_SPS:
-			this.sps = make([]byte, len(nal))
-			copy(this.sps, nal)
-			this.width, this.height, this.fps, _, _, _ = H264.DecodeSPS(this.sps)
-			this.codec = fmt.Sprintf("avc1.%02x%02x%02x", int(this.sps[1]), int(this.sps[2]), int(this.sps[3]))
-		case H264.NAL_PPS:
-			this.pps = make([]byte, len(nal))
-			copy(this.pps, nal)
-		case H264.NAL_SEI:
-			this.sei = make([]byte, len(nal))
-			copy(this.sei, nal)
-		case H264.NAL_SPS_EXT:
-			this.spsext = make([]byte, len(nal))
-			copy(this.spsext, nal)
-		case H264.NAL_IDR_SLICE:
-			if false == this.avcGeted {
-				tag := this.createAVCTag()
-				if nil == tag {
-					continue
-				}
-				tags.PushBack(tag)
+		tag := this.AddNal(nal)
+		if nil != tag {
+			tags.PushBack(tag)
+		}
+	}
+	return
+}
+
+func (this *SlicerH264)AddNal(nal []byte)(tag *AVPacket.MediaPacket){
+	nalType := nal[0] & 0x1f
+	switch nalType {
+	case H264.NAL_SPS:
+		this.sps = make([]byte, len(nal))
+		copy(this.sps, nal)
+		this.width, this.height, this.fps, _, _, _ = H264.DecodeSPS(this.sps)
+		this.codec = fmt.Sprintf("avc1.%02x%02x%02x", int(this.sps[1]), int(this.sps[2]), int(this.sps[3]))
+	case H264.NAL_PPS:
+		this.pps = make([]byte, len(nal))
+		copy(this.pps, nal)
+		if false==this.avcGeted{
+			tag = this.createAVCTag()
+			if nil == tag {
+				break
 			}
-			tag := this.createIdrSliceTag(nal)
-			if nil != tag {
-				tags.PushBack(tag)
-			}
-		case H264.NAL_SLICE:
-			if false == this.avcGeted {
-				continue
-			}
-			tag := this.createIdrSliceTag(nal)
-			if nil != tag {
-				tags.PushBack(tag)
-			}
-		case H264.NAL_DPA:
-			this.dp_datas = list.New()
+			this.avcGeted=true
+		}
+	case H264.NAL_SEI:
+		this.sei = make([]byte, len(nal))
+		copy(this.sei, nal)
+	case H264.NAL_SPS_EXT:
+		this.spsext = make([]byte, len(nal))
+		copy(this.spsext, nal)
+	case H264.NAL_IDR_SLICE:
+		if this.avcGeted{
+			tag = this.createIdrSliceTag(nal)
+		}
+	case H264.NAL_SLICE:
+		if this.avcGeted{
+			tag = this.createIdrSliceTag(nal)
+		}
+	case H264.NAL_DPA:
+		this.dp_datas = list.New()
+		this.dp_datas.PushBack(nal)
+	case H264.NAL_DPB:
+		if nil == this.dp_datas || this.dp_datas.Len() != 1 {
+			break
+		}
+		this.dp_datas.PushBack(nal)
+	case H264.NAL_DPC:
+		if nil == this.dp_datas || this.dp_datas.Len() != 1 {
+			break
+		}
+		if this.avcGeted {
 			this.dp_datas.PushBack(nal)
-		case H264.NAL_DPB:
-			if nil == this.dp_datas || this.dp_datas.Len() != 1 {
-				continue
-			}
-			this.dp_datas.PushBack(nal)
-		case H264.NAL_DPC:
-			if nil == this.dp_datas || this.dp_datas.Len() != 1 {
-				continue
-			}
-			if true == this.avcGeted {
-				this.dp_datas.PushBack(nal)
-				tag := this.createDPTag(this.dp_datas)
-				if nil != tag {
-					tags.PushBack(tag)
-				}
-			}
+			tag = this.createDPTag(this.dp_datas)
 		}
 	}
 	return

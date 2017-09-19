@@ -138,7 +138,7 @@ func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (lastTimestam
 	defer this.muxVideo.Unlock()
 	segment_time_data := &segmentTimeData{}
 	segment_time_data.t = this.lastVideoTimestamp
-	segment_time_data.d = durationMS * (this.vide.timeScale / 1000)
+	segment_time_data.d = int(int64(durationMS * this.vide.timeScale) / 1000)
 	segment_time_data.data = data
 	this.videoData[this.lastVideoTimestamp] = segment_time_data
 	this.videoKeys.PushBack(this.lastVideoTimestamp)
