@@ -3,12 +3,13 @@ package dashSlicer
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/panda-media/muxer-fmp4/codec/AAC"
 	"github.com/panda-media/muxer-fmp4/dashSlicer/AVSlicer"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 	"github.com/panda-media/muxer-fmp4/format/MP4"
 	"github.com/panda-media/muxer-fmp4/mpd"
-	"strings"
 )
 
 type DASHSlicer struct {
@@ -19,8 +20,9 @@ type DASHSlicer struct {
 	h264Processer         AVSlicer.SlicerH264
 	aacProcesser          AVSlicer.SlicerAAC
 	audioHeaderMuxed      bool
+	adtsHeaderEncoed      bool
 	videoHeaderMuxed      bool
-	videoTimescale int
+	videoTimescale        int
 	muxerV                *MP4.FMP4Muxer //video only
 	muxerA                *MP4.FMP4Muxer //audio only
 	audioFrameCount       int
@@ -29,14 +31,14 @@ type DASHSlicer struct {
 	receiver              FMP4Receiver
 }
 
-func NEWSlicer(minLengthMS, maxLengthMS, maxSegmentCountInMPD,videoTimescale int, receiver FMP4Receiver) (slicer *DASHSlicer, err error) {
+func NEWSlicer(minLengthMS, maxLengthMS, maxSegmentCountInMPD, videoTimescale int, receiver FMP4Receiver) (slicer *DASHSlicer, err error) {
 	slicer = &DASHSlicer{}
 	slicer.minSegmentDuration = minLengthMS
 	slicer.maxSegmentDuration = maxLengthMS
 	slicer.maxSegmentCountInMPD = maxSegmentCountInMPD
 	slicer.receiver = receiver
-	slicer.videoTimescale=videoTimescale
-	if maxSegmentCountInMPD < 2 || nil == receiver || maxLengthMS <= 1 ||videoTimescale<1{
+	slicer.videoTimescale = videoTimescale
+	if maxSegmentCountInMPD < 2 || nil == receiver || maxLengthMS <= 1 || videoTimescale < 1 {
 		err = errors.New("invalid param ")
 		return nil, err
 	}
@@ -120,12 +122,29 @@ func (this *DASHSlicer) AddH264Frame(nal []byte) (err error) {
 	if nil == tag {
 		return
 	}
-	err=this.appendH264Tag(tag)
+	err = this.appendH264Tag(tag)
 	if err != nil {
 		err = errors.New("AddH264Frame failed:" + err.Error())
 		return
 	}
 	return
+}
+
+func (this *DASHSlicer) AddAACADTSFrame(data []byte) (err error) {
+	if !this.adtsHeaderEncoed {
+		this.adtsHeaderEncoed = true
+		adts, err := AAC.ParseAdts(data)
+		if err != nil {
+			return err
+		}
+		headerData := AAC.EncodeAudioSpecificCOnfig(adts)
+		err = this.AddAACFrame(headerData)
+		if err != nil {
+			return err
+		}
+	}
+	frameData := AAC.ReMuxerADTSData(data)
+	return this.AddAACFrame(frameData)
 }
 
 //add one  aac frame
@@ -212,8 +231,8 @@ func (this *DASHSlicer) GetAudioData(param string) (data []byte, err error) {
 }
 
 //notice the slicer stream end
-func (this *DASHSlicer)EndofStream(){
-	if this.videoHeaderMuxed{
+func (this *DASHSlicer) EndofStream() {
+	if this.videoHeaderMuxed {
 		//video only or av
 		_, moofmdat, duration, bitrate, err := this.muxerV.Flush()
 		if err != nil {
@@ -238,7 +257,7 @@ func (this *DASHSlicer)EndofStream(){
 			this.audioFrameCount = 0
 
 		}
-	}else if this.audioHeaderMuxed{
+	} else if this.audioHeaderMuxed {
 		//audio only
 		_, moofmdat, _, bitrate, err := this.muxerA.Flush()
 		if err != nil {

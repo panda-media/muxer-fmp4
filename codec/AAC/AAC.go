@@ -291,15 +291,34 @@ func ParseAdts(data []byte) (ADTSData, error) {
 	if adts.fixed_header.syncword != 0xfff {
 		return adts, errors.New("not adts data")
 	}
-	adts.fixed_header.id = int((data[1] >> 3) & 0x1)
-	adts.fixed_header.layer = int((data[1] >> 1) & 0x3)
-	adts.fixed_header.protection_absent = int(data[1] & 0x1)
-	adts.fixed_header.profile = int(data[2] >> 6)
-	adts.fixed_header.sampling_frequency_index = int((data[2] >> 2) & 0xf)
-	adts.fixed_header.private_bit = int((data[2] >> 1) & 0x1)
-	adts.fixed_header.channel_configuration = int((data[2]&0x1)<<2) + int(data[3]>>6)
-	adts.fixed_header.original_copy = int((data[3] >> 5) & 0x1)
-	adts.fixed_header.home = int((data[3] >> 4) & 0x1)
+	adts.fixed_header.id = int(data[1]) >> 3 & 0x1
+	adts.fixed_header.layer = int(data[1]) >> 1 & 0x3
+	adts.fixed_header.protection_absent = int(data[1]) & 0x1
+	adts.fixed_header.profile = int(data[2]) >> 6
+	adts.fixed_header.sampling_frequency_index = int(data[2]) >> 2 & 0xf
+	adts.fixed_header.private_bit = int(data[2]) >> 1 & 0x1
+	adts.fixed_header.channel_configuration = int(data[2]&0x1)<<2 + int(data[3]>>6)
+	adts.fixed_header.original_copy = int(data[3]) >> 5 & 0x1
+	adts.fixed_header.home = int(data[3]) >> 4 & 0x1
+	adts.varlable_header.copyright_identification_bit = int(data[3]) >> 3 & 0x1
+	adts.varlable_header.copyright_identification_start = int(data[3]) >> 2 & 0x1
+	adts.varlable_header.aac_frame_length = int(data[3]&0x3)<<11 + (int(data[4]) << 3) + (int(data[5])>>5)&0x7
+	adts.varlable_header.adts_buffer_fullness = int(data[5]&0x1f)<<6 + int(data[6])>>2
+	adts.varlable_header.number_of_raw_data_blocks_in_frame = int(data[6] & 0x3)
 
 	return adts, nil
+}
+func EncodeAudioSpecificCOnfig(adts ADTSData) []byte {
+	var header = make([]byte, 2)
+	header[0] = byte(adts.fixed_header.profile) << 3
+	header[0] |= byte(adts.fixed_header.sampling_frequency_index) >> 1
+	header[1] = byte(adts.fixed_header.sampling_frequency_index&0x1) << 7
+	header[1] |= byte(adts.fixed_header.channel_configuration) << 4
+	return header
+}
+
+func ReMuxerADTSData(data []byte) []byte {
+	var ret = make([]byte, len(data)-7)
+	copy(ret, data[7:])
+	return ret
 }
