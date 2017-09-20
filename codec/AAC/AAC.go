@@ -308,9 +308,9 @@ func ParseAdts(data []byte) (ADTSData, error) {
 
 	return adts, nil
 }
-func EncodeAudioSpecificCOnfig(adts ADTSData) []byte {
+func EncodeAudioSpecificConfig(adts ADTSData) []byte {
 	var header = make([]byte, 2)
-	header[0] = byte(adts.fixed_header.profile) << 3
+	header[0] = byte(adts.fixed_header.profile+1) << 3
 	header[0] |= byte(adts.fixed_header.sampling_frequency_index) >> 1
 	header[1] = byte(adts.fixed_header.sampling_frequency_index&0x1) << 7
 	header[1] |= byte(adts.fixed_header.channel_configuration) << 4
