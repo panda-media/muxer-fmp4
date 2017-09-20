@@ -137,7 +137,7 @@ func (this *DASHSlicer) AddAACADTSFrame(data []byte) (err error) {
 		if err != nil {
 			return err
 		}
-		headerData := AAC.EncodeAudioSpecificCOnfig(adts)
+		headerData := AAC.EncodeAudioSpecificConfig(adts)
 		err = this.AddAACFrame(headerData)
 		if err != nil {
 			return err
