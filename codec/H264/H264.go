@@ -2,6 +2,7 @@ package H264
 
 import (
 	"bytes"
+	"log"
 )
 
 const (
@@ -46,7 +47,7 @@ func DecodeSPS(sps []byte) (width, height, fps int, chroma_format_idc, bit_depth
 	width = spsv.width
 	height = spsv.height
 	if spsv.vui != nil {
-		fps = spsv.vui.time_scale / (spsv.vui.num_units_in_tick * 2)
+			fps = spsv.vui.time_scale / (spsv.vui.num_units_in_tick * 2)
 	}
 	chroma_format_idc = byte(spsv.chroma_format_idc)
 	bit_depth_chroma_minus8 = byte(spsv.bit_depth_chroma_minus8)
@@ -91,6 +92,7 @@ func (this *H264TimeCalculator) calFrameTimeStamp() (timestamp int64) {
 func (this *H264TimeCalculator) AddNal(data []byte) (pts, cts int64, bFrame bool) {
 	nalType := data[0] & 0x1f
 	if this.sps == nil || this.sps.time_scale == 0 {
+		log.Fatal(this.sps.time_scale,this.sps.vui.time_scale)
 		return 0, 0, false
 	}
 	if nalType == NAL_SLICE || nalType == NAL_DPA ||

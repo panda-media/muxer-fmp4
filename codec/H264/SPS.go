@@ -211,6 +211,12 @@ func decodeSPS_RBSP(nal []byte) (sps *SPS) {
 		sps.num_units_in_tick = sps.vui.num_units_in_tick
 	}
 
+	if sps.vui.time_scale==0||sps.vui.num_units_in_tick==0{
+		sps.vui.time_scale=90000
+		sps.vui.num_units_in_tick=1800
+	}
+	sps.time_scale = sps.vui.time_scale
+	sps.num_units_in_tick = sps.vui.num_units_in_tick
 	return
 }
 
