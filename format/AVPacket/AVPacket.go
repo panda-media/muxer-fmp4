@@ -58,7 +58,7 @@ const (
 
 type MediaPacket struct {
 	PacketType int
-	TimeStamp  uint32
+	TimeStamp  int64
 	StreamID   int
 	Data       []byte
 }

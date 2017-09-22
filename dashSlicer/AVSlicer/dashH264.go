@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/panda-media/muxer-fmp4/codec/H264"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
+	"errors"
 )
+
 
 type SlicerH264 struct {
 	sps      []byte
@@ -18,10 +20,16 @@ type SlicerH264 struct {
 	width    int
 	height   int
 	fps      int
+	custom_time bool
 	codec    string
 }
 
-func (this *SlicerH264) AddNals(data []byte) (tags *list.List) {
+func (this *SlicerH264)Init(custom_time bool,fps int){
+	this.custom_time=custom_time
+	this.fps=fps
+}
+
+func (this *SlicerH264) AddNals(data []byte,timestamp int64) (tags *list.List,err error) {
 	nals := this.separateNalus(data)
 	if nals == nil || nals.Len() == 0 {
 		return
@@ -34,7 +42,8 @@ func (this *SlicerH264) AddNals(data []byte) (tags *list.List) {
 		if 0 != zero {
 			continue
 		}
-		tag := this.AddNal(nal)
+		var tag *AVPacket.MediaPacket
+		tag ,err= this.AddNal(nal,timestamp)
 		if nil != tag {
 			tags.PushBack(tag)
 		}
@@ -42,13 +51,26 @@ func (this *SlicerH264) AddNals(data []byte) (tags *list.List) {
 	return
 }
 
-func (this *SlicerH264)AddNal(nal []byte)(tag *AVPacket.MediaPacket){
+func (this *SlicerH264)AddNal(nal []byte,timestamp int64)(tag *AVPacket.MediaPacket,err error){
 	nalType := nal[0] & 0x1f
 	switch nalType {
 	case H264.NAL_SPS:
 		this.sps = make([]byte, len(nal))
 		copy(this.sps, nal)
-		this.width, this.height, this.fps, _, _, _ = H264.DecodeSPS(this.sps)
+		var fps int
+		this.width, this.height, fps,  _, _,_ = H264.DecodeSPS(this.sps)
+
+		if fps<=0{
+			if this.fps<=0{
+				err=errors.New("sps  timing_info not found")
+				return
+			}
+		}else{
+			if false==this.custom_time{
+				this.fps=fps
+			}
+		}
+
 		this.codec = fmt.Sprintf("avc1.%02x%02x%02x", int(this.sps[1]), int(this.sps[2]), int(this.sps[3]))
 	case H264.NAL_PPS:
 		this.pps = make([]byte, len(nal))
@@ -68,11 +90,11 @@ func (this *SlicerH264)AddNal(nal []byte)(tag *AVPacket.MediaPacket){
 		copy(this.spsext, nal)
 	case H264.NAL_IDR_SLICE:
 		if this.avcGeted{
-			tag = this.createIdrSliceTag(nal)
+			tag = this.createIdrSliceTag(nal,timestamp)
 		}
 	case H264.NAL_SLICE:
 		if this.avcGeted{
-			tag = this.createIdrSliceTag(nal)
+			tag = this.createIdrSliceTag(nal,timestamp)
 		}
 	case H264.NAL_DPA:
 		this.dp_datas = list.New()
@@ -88,7 +110,7 @@ func (this *SlicerH264)AddNal(nal []byte)(tag *AVPacket.MediaPacket){
 		}
 		if this.avcGeted {
 			this.dp_datas.PushBack(nal)
-			tag = this.createDPTag(this.dp_datas)
+			tag = this.createDPTag(this.dp_datas,timestamp)
 		}
 	}
 	return
@@ -163,7 +185,7 @@ func (this *SlicerH264) createAVCTag() (tag *AVPacket.MediaPacket) {
 	if nil == this.sps || nil == this.pps {
 		return nil
 	}
-	this.nalTimer.SetSPS(this.sps)
+	this.nalTimer.SetSPS(this.sps,this.fps)
 	avc := H264.AVCDecoderConfigurationRecord{}
 	avc.AddSPS(this.sps)
 	avc.AddPPS(this.pps)
@@ -183,11 +205,11 @@ func (this *SlicerH264) createAVCTag() (tag *AVPacket.MediaPacket) {
 	return
 }
 
-func (this *SlicerH264) createIdrSliceTag(data []byte) (tag *AVPacket.MediaPacket) {
+func (this *SlicerH264) createIdrSliceTag(data []byte,timestamp int64) (tag *AVPacket.MediaPacket) {
 	tag = &AVPacket.MediaPacket{}
 	tag.PacketType = AVPacket.AV_PACKET_TYPE_VIDEO
-	pts, cts, _ := this.nalTimer.AddNal(data)
-	tag.TimeStamp = uint32(pts & 0xffffffff)
+	pts, cts, _ := this.nalTimer.AddNal(data,timestamp)
+	tag.TimeStamp = pts
 
 	tag.Data = make([]byte, len(data)+5+4)
 
@@ -209,14 +231,14 @@ func (this *SlicerH264) createIdrSliceTag(data []byte) (tag *AVPacket.MediaPacke
 	return
 }
 
-func (this *SlicerH264) createDPTag(data_dps *list.List) (tag *AVPacket.MediaPacket) {
+func (this *SlicerH264) createDPTag(data_dps *list.List,timestamp int64) (tag *AVPacket.MediaPacket) {
 	if nil == data_dps || data_dps.Len() != 3 {
 		return
 	}
 	tag = &AVPacket.MediaPacket{}
 	tag.PacketType = AVPacket.AV_PACKET_TYPE_VIDEO
-	pts, cts, _ := this.nalTimer.AddNal(data_dps.Front().Value.([]byte))
-	tag.TimeStamp = uint32(pts & 0xffffffff)
+	pts, cts, _ := this.nalTimer.AddNal(data_dps.Front().Value.([]byte),timestamp)
+	tag.TimeStamp = pts
 	datasize := 5
 	for e := data_dps.Front(); e != nil; e = e.Next() {
 		datasize += len(e.Value.([]byte)) + 4

@@ -18,39 +18,52 @@ type DASHSlicer struct {
 	maxSegmentCountInMPD  int
 	lastBeginTime         int
 	h264Processer         AVSlicer.SlicerH264
+	videoTimescale int
 	aacProcesser          AVSlicer.SlicerAAC
 	audioHeaderMuxed      bool
 	adtsHeaderEncoed      bool
 	videoHeaderMuxed      bool
-	videoTimescale        int
 	muxerV                *MP4.FMP4Muxer //video only
 	muxerA                *MP4.FMP4Muxer //audio only
 	audioFrameCount       int
-	lastAudioTagBeginTime uint32
+	lastAudioTagBeginTime int64
 	mpd                   *mpd.MPDDynamic
 	receiver              FMP4Receiver
 }
 
-func NEWSlicer(minLengthMS, maxLengthMS, maxSegmentCountInMPD, videoTimescale int, receiver FMP4Receiver) (slicer *DASHSlicer, err error) {
+func NEWSlicer(custom_time bool,fps, videoTimescale ,minLengthMS, maxLengthMS, maxSegmentCountInMPD int, receiver FMP4Receiver) (slicer *DASHSlicer, err error) {
 	slicer = &DASHSlicer{}
+
+	if maxSegmentCountInMPD < 2 || nil == receiver  {
+		err = errors.New("invalid param ")
+		return nil, err
+	}
+	if minLengthMS<1000{
+		minLengthMS=1000
+	}
+	if maxLengthMS<minLengthMS{
+		maxLengthMS=minLengthMS
+	}
+	if videoTimescale<=60{
+		videoTimescale=90000
+	}
+
 	slicer.minSegmentDuration = minLengthMS
 	slicer.maxSegmentDuration = maxLengthMS
 	slicer.maxSegmentCountInMPD = maxSegmentCountInMPD
 	slicer.receiver = receiver
-	slicer.videoTimescale = videoTimescale
-	if maxSegmentCountInMPD < 2 || nil == receiver || maxLengthMS <= 1 || videoTimescale < 1 {
-		err = errors.New("invalid param ")
-		return nil, err
-	}
+	slicer.videoTimescale=videoTimescale
+
+	slicer.h264Processer.Init(custom_time,fps)
 	slicer.init()
 
 	return
 }
 
 //add one or more nal
-func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
-	tags := this.h264Processer.AddNals(data)
-	if tags == nil || tags.Len() == 0 {
+func (this *DASHSlicer) AddH264Nals(data []byte,timestamp int64) (err error) {
+	tags,err := this.h264Processer.AddNals(data,timestamp)
+	if err!=nil||tags == nil || tags.Len() == 0{
 		return
 	}
 	for e := tags.Front(); e != nil; e = e.Next() {
@@ -64,8 +77,26 @@ func (this *DASHSlicer) AddH264Nals(data []byte) (err error) {
 	return
 }
 
+//add one nal
+
+func (this *DASHSlicer) AddH264Frame(nal []byte,timestamp int64) (err error) {
+	tag ,err:= this.h264Processer.AddNal(nal,timestamp)
+	if err!=nil||nil == tag {
+		return
+	}
+	err = this.appendH264Tag(tag)
+	if err != nil {
+		err = errors.New("AddH264Frame failed:" + err.Error())
+		return
+	}
+	return
+}
+
 func (this *DASHSlicer) appendH264Tag(tag *AVPacket.MediaPacket) (err error) {
+
+
 	if this.videoHeaderMuxed == false && tag.Data[0] == 0x17 && tag.Data[1] == 0 {
+		//err = this.muxerV.SetVideoHeader(tag,this.videoTimescale)
 		err = this.muxerV.SetVideoHeader(tag)
 		if err != nil {
 			err = errors.New("set video header :" + err.Error())
@@ -81,7 +112,7 @@ func (this *DASHSlicer) appendH264Tag(tag *AVPacket.MediaPacket) (err error) {
 	}
 
 	if tag.Data[0] == 0x17 && tag.Data[1] == 1 {
-		if this.newslice(tag.TimeStamp) {
+		if this.needNewSegment(tag.TimeStamp) {
 			_, moofmdat, duration, bitrate, err := this.muxerV.Flush()
 			if err != nil {
 				return err
@@ -115,20 +146,6 @@ func (this *DASHSlicer) appendH264Tag(tag *AVPacket.MediaPacket) (err error) {
 	return
 }
 
-//add one nal
-
-func (this *DASHSlicer) AddH264Frame(nal []byte) (err error) {
-	tag := this.h264Processer.AddNal(nal)
-	if nil == tag {
-		return
-	}
-	err = this.appendH264Tag(tag)
-	if err != nil {
-		err = errors.New("AddH264Frame failed:" + err.Error())
-		return
-	}
-	return
-}
 
 func (this *DASHSlicer) AddAACADTSFrame(data []byte) (err error) {
 	if !this.adtsHeaderEncoed {
@@ -172,7 +189,7 @@ func (this *DASHSlicer) AddAACFrame(data []byte) (err error) {
 	} else {
 		this.muxerA.AddPacket(tag)
 		this.audioFrameCount++
-		if false == this.videoHeaderMuxed && tag.TimeStamp-this.lastAudioTagBeginTime > uint32(this.maxSegmentDuration) {
+		if false == this.videoHeaderMuxed && tag.TimeStamp-this.lastAudioTagBeginTime >int64(this.maxSegmentDuration) {
 			_, moofmdat, _, bitrate, er := this.muxerA.Flush()
 			if er != nil {
 				return er
@@ -200,7 +217,7 @@ func (this *DASHSlicer) init() {
 	this.mpd = mpd.NewDynamicMPDCreater(this.minSegmentDuration, this.maxSegmentCountInMPD)
 }
 
-func (this *DASHSlicer) newslice(timestamp uint32) bool {
+func (this *DASHSlicer) needNewSegment(timestamp int64) bool {
 	if int(timestamp)-this.lastBeginTime >= this.minSegmentDuration {
 		this.lastBeginTime = int(timestamp)
 		return true

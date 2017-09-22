@@ -218,7 +218,7 @@ func (this *FMP4Muxer) addH264(packet *AVPacket.MediaPacket) (err error) {
 	var duration uint32
 	duration = 10
 	if this.timeLastVideo != 0 {
-		duration = packet.TimeStamp - this.timeLastVideo
+		duration = uint32(packet.TimeStamp - this.timeLastVideo)
 	}
 	this.timeLastVideo = packet.TimeStamp
 	trunData.Sample_duration = duration

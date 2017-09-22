@@ -2,7 +2,6 @@ package H264
 
 import (
 	"bytes"
-	"log"
 )
 
 const (
@@ -39,19 +38,22 @@ func emulation_prevention(nal []byte) []byte {
 	return buf.Bytes()
 }
 
-func DecodeSPS(sps []byte) (width, height, fps int, chroma_format_idc, bit_depth_luma_minus8, bit_depth_chroma_minus8 byte) {
+func DecodeSPS(sps_data []byte) (width, height, fps int, chroma_format_idc, bit_depth_luma_minus8, bit_depth_chroma_minus8 byte) {
 
-	data := emulation_prevention(sps)
+	data := emulation_prevention(sps_data)
 
-	spsv := decodeSPS_RBSP(data[1:])
-	width = spsv.width
-	height = spsv.height
-	if spsv.vui != nil {
-			fps = spsv.vui.time_scale / (spsv.vui.num_units_in_tick * 2)
+	sps_info := decodeSPS_RBSP(data[1:])
+	width = sps_info.width
+	height = sps_info.height
+	if sps_info.vui != nil&& sps_info.vui.timing_info_present_flag!=0&& sps_info.vui.time_scale!=0&& sps_info.vui.num_units_in_tick!=0 {
+		fps = sps_info.vui.time_scale / (sps_info.vui.num_units_in_tick * 2)
+	}else{
+		fps=-1
 	}
-	chroma_format_idc = byte(spsv.chroma_format_idc)
-	bit_depth_chroma_minus8 = byte(spsv.bit_depth_chroma_minus8)
-	bit_depth_luma_minus8 = byte(spsv.bit_depth_luma_minus8)
+
+	chroma_format_idc = byte(sps_info.chroma_format_idc)
+	bit_depth_chroma_minus8 = byte(sps_info.bit_depth_chroma_minus8)
+	bit_depth_luma_minus8 = byte(sps_info.bit_depth_luma_minus8)
 
 	return
 }
@@ -65,18 +67,17 @@ type H264TimeCalculator struct {
 	last_cnt_lsb     int
 	last_group_time  int64
 	next_group_time  int64
+	fps int64
 }
 
-func (this *H264TimeCalculator) SetSPS(sps []byte) {
+func (this *H264TimeCalculator) SetSPS(sps []byte,fps int) {
 	if this.sps != nil {
 		return
 	}
 	data := emulation_prevention(sps)
 	this.sps = decodeSPS_RBSP(data[1:])
-	if this.sps.time_scale > 0 {
-		fps := int64(this.sps.time_scale / (this.sps.num_units_in_tick * 2))
-		this.frame_duration = 1000 / fps
-	}
+	this.frame_duration=int64(1000/fps)
+	this.fps=int64(fps)
 	this.group_size = ((1 << uint(this.sps.log2_max_pic_order_cnt_lsb_minus4+4)) + 1) / 2
 	this.last_frame_group = 0
 	this.last_cnt_lsb = 0
@@ -84,21 +85,17 @@ func (this *H264TimeCalculator) SetSPS(sps []byte) {
 	this.next_group_time = 0
 }
 
-func (this *H264TimeCalculator) calFrameTimeStamp() (timestamp int64) {
-	timestamp = this.frame_counter * 2000* int64(this.sps.num_units_in_tick) / int64(this.sps.time_scale)
+func (this *H264TimeCalculator) getTimestamp() (timestamp int64) {
+	timestamp = this.frame_counter * 1000/this.fps
 	return
 }
 
-func (this *H264TimeCalculator) AddNal(data []byte) (pts, cts int64, bFrame bool) {
+func (this *H264TimeCalculator) AddNal(data []byte,timestamp int64) (pts, cts int64, bFrame bool) {
 	nalType := data[0] & 0x1f
-	if this.sps == nil || this.sps.time_scale == 0 {
-		log.Fatal(this.sps.time_scale,this.sps.vui.time_scale)
-		return 0, 0, false
-	}
+
 	if nalType == NAL_SLICE || nalType == NAL_DPA ||
 		nalType == NAL_IDR_SLICE {
 		bFrame = true
-
 		if this.sps.pic_order_cnt_type == 0 {
 			pts, cts = this.cnt_type_0(data)
 		} else if this.sps.pic_order_cnt_type == 1 {
@@ -106,19 +103,22 @@ func (this *H264TimeCalculator) AddNal(data []byte) (pts, cts int64, bFrame bool
 		} else if this.sps.pic_order_cnt_type == 2 {
 			pts, cts = this.cnt_type_2(data)
 		}
+
+		if timestamp!=0{
+			pts=int64(timestamp)
+		}
 		this.frame_counter++
 	} else {
-		if nalType != NAL_SEI {
-		}
 		return 0, 0, false
 	}
 	return
 }
 
 func (this *H264TimeCalculator) cnt_type_0(data []byte) (pts, cts int64) {
-	pts = this.calFrameTimeStamp()
+	pts = this.getTimestamp()
 	header := decodeNalSliceHeader(data, this.sps)
 	lsb := header.pic_order_cnt_lsb / 2
+
 	if lsb == 0 {
 		dts := pts + this.frame_duration*2
 		cts = dts - pts
@@ -153,15 +153,15 @@ func (this *H264TimeCalculator) cnt_type_0(data []byte) (pts, cts int64) {
 		cts = 0
 	}
 	this.last_cnt_lsb = lsb
-
 	return
 }
 
 func (this *H264TimeCalculator) cnt_type_1(data []byte) (pts, cts int64) {
-	pts = this.calFrameTimeStamp()
+	pts = this.getTimestamp()
 	return
 }
+
 func (this *H264TimeCalculator) cnt_type_2(data []byte) (pts, cts int64) {
-	pts = this.calFrameTimeStamp()
+	pts = this.getTimestamp()
 	return
 }

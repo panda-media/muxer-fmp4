@@ -14,6 +14,8 @@ const(
 
 	IdAudio="audio0"
 	IdVideo="video0"
+	MillInSec=1000
+	MillInSecFloat=1000.0
 )
 type videoInfo struct {
 	timeScale int
@@ -86,12 +88,12 @@ func (this *MPDDynamic) generatePTime(year, month, day, hour, minute, sec, mill 
 	if minute > 0 {
 		pt += strconv.Itoa(minute) + "M"
 	}
-	pt += fmt.Sprintf("%.3f", float32(float32(sec)+float32(mill)/1000.0)) + "S"
+	pt += fmt.Sprintf("%.3f", float32(float32(sec)+float32(mill)/MillInSecFloat)) + "S"
 	return
 }
 
 func (this *MPDDynamic)generatePTimeMillSec(mill int)(pt string){
-	pt="PT"+fmt.Sprintf("%.3f", float32(float32(mill)/1000.0)) + "S"
+	pt="PT"+fmt.Sprintf("%.3f", float32(float32(mill)/MillInSecFloat)) + "S"
 	return
 }
 
@@ -138,7 +140,7 @@ func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (lastTimestam
 	defer this.muxVideo.Unlock()
 	segment_time_data := &segmentTimeData{}
 	segment_time_data.t = this.lastVideoTimestamp
-	segment_time_data.d = int(int64(durationMS * this.vide.timeScale) / 1000)
+	segment_time_data.d = int(int64(durationMS * this.vide.timeScale) / MillInSec)
 	segment_time_data.data = data
 	this.videoData[this.lastVideoTimestamp] = segment_time_data
 	this.videoKeys.PushBack(this.lastVideoTimestamp)
@@ -256,7 +258,7 @@ func (this *MPDDynamic)mpdAttrs(mpd *MPD){
 			minBufferTime=e.d
 		}
 	}
-	minBufferTime=minBufferTime/(this.vide.timeScale/1000)
+	minBufferTime=minBufferTime*MillInSec/this.vide.timeScale
 	mpd.MinBufferTime=this.generatePTimeMillSec(minBufferTime)
 
 
@@ -269,8 +271,8 @@ func (this *MPDDynamic)mpdAttrs(mpd *MPD){
 				delay+=this.videoData[e.Value.(int64)].d
 			}
 		}
-		//delay=0
-		suggestedPresentationDelay=this.generatePTimeMillSec(delay/(this.vide.timeScale/1000))
+		delay=0
+		suggestedPresentationDelay=this.generatePTimeMillSec(delay*MillInSec/this.vide.timeScale)
 		return
 	}()
 }

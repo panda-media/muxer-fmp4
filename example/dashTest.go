@@ -25,7 +25,7 @@ func (this *testReceiver)AudioSegmentGenerated(audioSegment []byte,timestamp int
 
 func FlvFileToFMP4(flvFileName string) {
 	receiver:=&testReceiver{}
-	slicer,err := dashSlicer.NEWSlicer(1000, 5000,5,90000,receiver )
+	slicer,err := dashSlicer.NEWSlicer(false,25,90000,1000, 5000,5,receiver )
 	if err!=nil{
 		log.Println(err.Error())
 	}
@@ -44,8 +44,15 @@ func FlvFileToFMP4(flvFileName string) {
 			log.Println("the last MPD sample:\n",string(mpd))
 		}
 	}()
+	count:=0
+	audioCount:=0
+	videoCount:=0
 	tag, err := reader.GetNextTag()
 	for tag != nil && err == nil {
+		if count>4000{
+			return
+		}
+		count++
 		if tag.TagType == FLV_TAG_Video {
 			if tag.Data[0] == 0x17 && tag.Data[1] == 0 {
 				avc, err := H264.DecodeAVC(tag.Data[5:])
@@ -59,7 +66,7 @@ func FlvFileToFMP4(flvFileName string) {
 					nal[1] = 0
 					nal[2] = 1
 					copy(nal[3:], e.Value.([]byte))
-					slicer.AddH264Nals(nal)
+					slicer.AddH264Nals(nal,0)
 				}
 				for e := avc.PPS.Front(); e != nil; e = e.Next() {
 					nal := make([]byte, 3+len(e.Value.([]byte)))
@@ -67,9 +74,13 @@ func FlvFileToFMP4(flvFileName string) {
 					nal[1] = 0
 					nal[2] = 1
 					copy(nal[3:], e.Value.([]byte))
-					slicer.AddH264Nals(nal)
+					slicer.AddH264Nals(nal,0)
 				}
 			} else {
+				cts:=0
+				cts=int(tag.Data[2])<<16
+				cts|=int(tag.Data[3])<<8
+				cts|=int(tag.Data[4])<<0
 				cur := 5
 				for cur < len(tag.Data) {
 					size := int(tag.Data[cur]) << 24
@@ -82,14 +93,15 @@ func FlvFileToFMP4(flvFileName string) {
 					nal[1] = 0
 					nal[2] = 1
 					copy(nal[3:], tag.Data[cur:cur+size])
-					slicer.AddH264Nals(nal)
+					slicer.AddH264Nals(nal,0)
 					cur += size
 				}
 
 			}
-
+			videoCount++
 		} else if tag.TagType == FLV_TAG_Audio {
 			slicer.AddAACFrame(tag.Data[2:])
+			audioCount++
 		}
 		tag, err = reader.GetNextTag()
 	}

@@ -45,9 +45,9 @@ func (this *SlicerAAC) AddFrame(data []byte) (tag *AVPacket.MediaPacket) {
 	return
 }
 
-func (this *SlicerAAC) calNextTimeStamp() (timestamp uint32) {
+func (this *SlicerAAC) calNextTimeStamp() (timestamp int64) {
 	this.frameCount++
-	timestamp = uint32((this.frameCount * 1000 * AAC.SAMPLE_SIZE / int64(this.asc.SampleRate())) & 0xffffffff)
+	timestamp = this.frameCount * 1000 * AAC.SAMPLE_SIZE / int64(this.asc.SampleRate())
 	return
 }
 
