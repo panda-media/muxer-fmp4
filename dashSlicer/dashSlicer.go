@@ -13,57 +13,58 @@ import (
 )
 
 type DASHSlicer struct {
-	minSegmentDuration    int
-	maxSegmentDuration    int //valid when audio only
-	maxSegmentCountInMPD  int
-	lastBeginTime         int
-	h264Processer         AVSlicer.SlicerH264
-	videoTimescale int
-	aacProcesser          AVSlicer.SlicerAAC
-	audioHeaderMuxed      bool
-	adtsHeaderEncoed      bool
-	videoHeaderMuxed      bool
-	muxerV                *MP4.FMP4Muxer //video only
-	muxerA                *MP4.FMP4Muxer //audio only
-	audioFrameCount       int
-	lastAudioTagBeginTime int64
-	mpd                   *mpd.MPDDynamic
-	receiver              FMP4Receiver
+	minSegmentDuration   int   //ms
+	maxSegmentDuration   int   //valid when audio only
+	maxSegmentCountInMPD int   //ms
+	lastVideoStartTime   int64 //in pts
+	h264Transfer         AVSlicer.SlicerH264
+	videoTimescale       int
+	audioTimescale int
+	aacTransfer          AVSlicer.SlicerAAC
+	audioHeaderMuxed     bool
+	adtsHeaderEncoed     bool
+	videoHeaderMuxed     bool
+	muxerV               *MP4.FMP4Muxer //video only
+	muxerA               *MP4.FMP4Muxer //audio only
+	lastAudioStartTime   int64          //in pts
+	mpd                  *mpd.MPDDynamic
+	receiver             FMP4Receiver
 }
-
-func NEWSlicer(custom_time bool,fps, videoTimescale ,minLengthMS, maxLengthMS, maxSegmentCountInMPD int, receiver FMP4Receiver) (slicer *DASHSlicer, err error) {
+//videoTimescale and audioTimescale for input
+func NEWSlicer(fps, videoTimescale,audioTimescale, minLengthMS, maxLengthMS, maxSegmentCountInMPD int, receiver FMP4Receiver) (slicer *DASHSlicer, err error) {
 	slicer = &DASHSlicer{}
 
-	if maxSegmentCountInMPD < 2 || nil == receiver  {
+	if maxSegmentCountInMPD < 2 || nil == receiver {
 		err = errors.New("invalid param ")
 		return nil, err
 	}
-	if minLengthMS<1000{
-		minLengthMS=1000
+	if minLengthMS < 1000 {
+		minLengthMS = 1000
 	}
-	if maxLengthMS<minLengthMS{
-		maxLengthMS=minLengthMS
+	if maxLengthMS < minLengthMS {
+		maxLengthMS = minLengthMS
 	}
-	if videoTimescale<=60{
-		videoTimescale=90000
+	if videoTimescale <= 60 {
+		videoTimescale = 90000
 	}
 
 	slicer.minSegmentDuration = minLengthMS
 	slicer.maxSegmentDuration = maxLengthMS
 	slicer.maxSegmentCountInMPD = maxSegmentCountInMPD
 	slicer.receiver = receiver
-	slicer.videoTimescale=videoTimescale
+	slicer.videoTimescale = videoTimescale
+	slicer.audioTimescale=audioTimescale
 
-	slicer.h264Processer.Init(custom_time,fps)
+	slicer.h264Transfer.Init(fps)
 	slicer.init()
 
 	return
 }
 
 //add one or more nal
-func (this *DASHSlicer) AddH264Nals(data []byte,timestamp int64) (err error) {
-	tags,err := this.h264Processer.AddNals(data,timestamp)
-	if err!=nil||tags == nil || tags.Len() == 0{
+func (this *DASHSlicer) AddH264Nals(data []byte, timestamp int64) (err error) {
+	tags, err := this.h264Transfer.AddNals(data, timestamp)
+	if err != nil || tags == nil || tags.Len() == 0 {
 		return
 	}
 	for e := tags.Front(); e != nil; e = e.Next() {
@@ -79,9 +80,9 @@ func (this *DASHSlicer) AddH264Nals(data []byte,timestamp int64) (err error) {
 
 //add one nal
 
-func (this *DASHSlicer) AddH264Frame(nal []byte,timestamp int64) (err error) {
-	tag ,err:= this.h264Processer.AddNal(nal,timestamp)
-	if err!=nil||nil == tag {
+func (this *DASHSlicer) AddH264Frame(nal []byte, timestamp int64) (err error) {
+	tag, err := this.h264Transfer.AddNal(nal, timestamp)
+	if err != nil || nil == tag {
 		return
 	}
 	err = this.appendH264Tag(tag)
@@ -94,16 +95,15 @@ func (this *DASHSlicer) AddH264Frame(nal []byte,timestamp int64) (err error) {
 
 func (this *DASHSlicer) appendH264Tag(tag *AVPacket.MediaPacket) (err error) {
 
-
 	if this.videoHeaderMuxed == false && tag.Data[0] == 0x17 && tag.Data[1] == 0 {
-		//err = this.muxerV.SetVideoHeader(tag,this.videoTimescale)
-		err = this.muxerV.SetVideoHeader(tag)
+		this.lastVideoStartTime = tag.TimeStamp
+		err = this.muxerV.SetVideoHeader(tag,uint32(this.videoTimescale))
 		if err != nil {
 			err = errors.New("set video header :" + err.Error())
 			return
 		}
-		this.mpd.SetVideoInfo(this.videoTimescale, this.h264Processer.Width(), this.h264Processer.Height(), this.h264Processer.FPS(),
-			1, this.h264Processer.Codec())
+		this.mpd.SetVideoInfo(this.videoTimescale, this.h264Transfer.Width(), this.h264Transfer.Height(), this.h264Transfer.FPS(),
+			1, this.h264Transfer.Codec())
 		this.videoHeaderMuxed = true
 		var videoHeader []byte
 		videoHeader, err = this.muxerV.GetInitSegment()
@@ -120,21 +120,17 @@ func (this *DASHSlicer) appendH264Tag(tag *AVPacket.MediaPacket) (err error) {
 			this.mpd.SetVideoBitrate(bitrate)
 
 			var timestamp int64
-			var durationMP4 int
-			timestamp, durationMP4, err = this.mpd.AddVideoSlice(duration, moofmdat)
-			this.receiver.VideoSegmentGenerated(moofmdat, timestamp, durationMP4)
+			timestamp, err = this.mpd.AddVideoSlice(duration, moofmdat)
+			this.receiver.VideoSegmentGenerated(moofmdat, timestamp, duration)
 			if this.audioHeaderMuxed {
-				_, moofmdat, _, bitrate, er := this.muxerA.Flush()
+				_, moofmdat, duration, bitrate, er := this.muxerA.Flush()
 				if er != nil {
 					return er
 				}
-
 				this.mpd.SetAudioBitrate(bitrate)
 
-				timestamp, durationMP4, _ := this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
-				this.receiver.AudioSegmentGenerated(moofmdat, timestamp, durationMP4)
-				this.audioFrameCount = 0
-
+				timestamp, _ := this.mpd.AddAudioSlice(duration, moofmdat)
+				this.receiver.AudioSegmentGenerated(moofmdat, timestamp, duration)
 			}
 
 		}
@@ -146,8 +142,7 @@ func (this *DASHSlicer) appendH264Tag(tag *AVPacket.MediaPacket) (err error) {
 	return
 }
 
-
-func (this *DASHSlicer) AddAACADTSFrame(data []byte) (err error) {
+func (this *DASHSlicer) AddAACADTSFrame(data []byte, timestamp int64) (err error) {
 	if !this.adtsHeaderEncoed {
 		this.adtsHeaderEncoed = true
 		adts, err := AAC.ParseAdts(data)
@@ -155,32 +150,32 @@ func (this *DASHSlicer) AddAACADTSFrame(data []byte) (err error) {
 			return err
 		}
 		headerData := AAC.EncodeAudioSpecificConfig(adts)
-		err = this.AddAACFrame(headerData)
+		err = this.AddAACFrame(headerData, timestamp)
 		if err != nil {
 			return err
 		}
 	}
 	frameData := AAC.ReMuxerADTSData(data)
-	return this.AddAACFrame(frameData)
+	return this.AddAACFrame(frameData, timestamp)
 }
 
 //add one  aac frame
-func (this *DASHSlicer) AddAACFrame(data []byte) (err error) {
-	tag := this.aacProcesser.AddFrame(data)
+func (this *DASHSlicer) AddAACFrame(data []byte, timestamp int64) (err error) {
+	tag := this.aacTransfer.AddFrame(data, timestamp,this.audioTimescale)
 	if tag == nil {
 		err = errors.New("invalid aac data")
 		return
 	}
 	if false == this.audioHeaderMuxed {
-		this.lastAudioTagBeginTime = tag.TimeStamp
+		this.lastAudioStartTime = tag.TimeStamp
 		this.muxerA.SetAudioHeader(tag)
 		this.audioHeaderMuxed = true
-		this.mpd.SetAudioInfo(this.aacProcesser.SampleRate(),
-			this.aacProcesser.SampleRate(),
+		this.mpd.SetAudioInfo(this.aacTransfer.SampleRate(),
+			this.aacTransfer.SampleRate(),
 			16,
-			this.aacProcesser.Channel(),
+			this.aacTransfer.Channel(),
 			AAC.SAMPLE_SIZE,
-			this.aacProcesser.Codec())
+			this.aacTransfer.Codec())
 		audioHeader, err := this.muxerA.GetInitSegment()
 		if err != nil {
 			return err
@@ -188,18 +183,19 @@ func (this *DASHSlicer) AddAACFrame(data []byte) (err error) {
 		this.receiver.AudioHeaderGenerated(audioHeader)
 	} else {
 		this.muxerA.AddPacket(tag)
-		this.audioFrameCount++
-		if false == this.videoHeaderMuxed && tag.TimeStamp-this.lastAudioTagBeginTime >int64(this.maxSegmentDuration) {
-			_, moofmdat, _, bitrate, er := this.muxerA.Flush()
-			if er != nil {
-				return er
+		if false == this.videoHeaderMuxed {
+			timestamp_MS := tag.TimeStamp * 1000 / int64(this.aacTransfer.SampleRate())
+			if timestamp_MS > this.lastAudioStartTime+int64(this.maxSegmentDuration) {
+				this.lastAudioStartTime = timestamp_MS
+				_, moofmdat, duration, bitrate, er := this.muxerA.Flush()
+				if er != nil {
+					return er
+				}
+				this.mpd.SetAudioBitrate(bitrate)
+
+				timestamp, _ := this.mpd.AddAudioSlice(duration, moofmdat)
+				this.receiver.AudioSegmentGenerated(moofmdat, timestamp, duration)
 			}
-
-			this.mpd.SetAudioBitrate(bitrate)
-
-			timestamp, durationMP4, _ := this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
-			this.receiver.AudioSegmentGenerated(moofmdat, timestamp, durationMP4)
-			this.audioFrameCount = 0
 		}
 	}
 	return
@@ -218,8 +214,9 @@ func (this *DASHSlicer) init() {
 }
 
 func (this *DASHSlicer) needNewSegment(timestamp int64) bool {
-	if int(timestamp)-this.lastBeginTime >= this.minSegmentDuration {
-		this.lastBeginTime = int(timestamp)
+	timestamp_MS := timestamp * 1000 / int64(this.videoTimescale)
+	if timestamp_MS >= this.lastVideoStartTime+int64(this.minSegmentDuration) {
+		this.lastVideoStartTime = timestamp_MS
 		return true
 	}
 	return false
@@ -258,34 +255,30 @@ func (this *DASHSlicer) EndofStream() {
 		this.mpd.SetVideoBitrate(bitrate)
 
 		var timestamp int64
-		var durationMP4 int
-		timestamp, durationMP4, err = this.mpd.AddVideoSlice(duration, moofmdat)
-		this.receiver.VideoSegmentGenerated(moofmdat, timestamp, durationMP4)
+		timestamp, err = this.mpd.AddVideoSlice(duration, moofmdat)
+		this.receiver.VideoSegmentGenerated(moofmdat, timestamp, duration)
 		if this.audioHeaderMuxed {
-			_, moofmdat, _, bitrate, err := this.muxerA.Flush()
+			_, moofmdat, duration, bitrate, err := this.muxerA.Flush()
 			if err != nil {
 				return
 			}
 
 			this.mpd.SetAudioBitrate(bitrate)
-
-			timestamp, durationMP4, _ := this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
-			this.receiver.AudioSegmentGenerated(moofmdat, timestamp, durationMP4)
-			this.audioFrameCount = 0
+			timestamp, _ := this.mpd.AddAudioSlice(duration, moofmdat)
+			this.receiver.AudioSegmentGenerated(moofmdat, timestamp, duration)
 
 		}
 	} else if this.audioHeaderMuxed {
 		//audio only
-		_, moofmdat, _, bitrate, err := this.muxerA.Flush()
+		_, moofmdat, duration, bitrate, err := this.muxerA.Flush()
 		if err != nil {
 			return
 		}
 
 		this.mpd.SetAudioBitrate(bitrate)
 
-		timestamp, durationMP4, _ := this.mpd.AddAudioSlice(this.audioFrameCount, moofmdat)
-		this.receiver.AudioSegmentGenerated(moofmdat, timestamp, durationMP4)
-		this.audioFrameCount = 0
+		timestamp, _ := this.mpd.AddAudioSlice(duration, moofmdat)
+		this.receiver.AudioSegmentGenerated(moofmdat, timestamp, duration)
 	}
 
 }

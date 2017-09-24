@@ -33,7 +33,7 @@ func (this *FMP4Muxer) SetAudioHeader(packet *AVPacket.MediaPacket) (err error) 
 		this.audioHeader = packet.Copy()
 		this.timescaleAudio, _, _ = commonBoxes.GetAudioSampleRateSampleSize(packet)
 		if this.videoHeader == nil {
-			this.timescale = this.timescaleAudio
+			this.timescaleSIDX = this.timescaleAudio
 		}
 	default:
 		return errors.New(fmt.Sprintf("sound format %d not support now", int(SoundFormat)))
@@ -46,7 +46,7 @@ func (this *FMP4Muxer) SetAudioHeader(packet *AVPacket.MediaPacket) (err error) 
 	return
 }
 
-func (this *FMP4Muxer) SetVideoHeader(packet *AVPacket.MediaPacket) (err error) {
+func (this *FMP4Muxer) SetVideoHeader(packet *AVPacket.MediaPacket, timescaleVideo uint32	) (err error) {
 	if nil == packet {
 		return errors.New("nil video header")
 	}
@@ -66,8 +66,8 @@ func (this *FMP4Muxer) SetVideoHeader(packet *AVPacket.MediaPacket) (err error) 
 		this.trunVideo.Version = 0
 		this.trunVideo.Tr_flags = 0xf01 //offset,duration,samplesize,flags,composition
 		this.trunVideo.Vals = list.New()
-		this.timescale = commonBoxes.VIDE_TIME_SCALE
-		this.timescaleVideo = commonBoxes.VIDE_TIME_SCALE
+		this.timescaleSIDX = timescaleVideo
+		this.timescaleVideo = timescaleVideo
 	default:
 		return errors.New(fmt.Sprintf("codeciID %d not support now", int(codecID)))
 	}
@@ -84,7 +84,7 @@ func (this *FMP4Muxer) GetInitSegment() (segData []byte, err error) {
 	}
 	buf.Write(ftyp)
 	//moov
-	moov, err := commonBoxes.Box_moov_Data(0, this.audioHeader, this.videoHeader, nil, nil)
+	moov, err := commonBoxes.Box_moov_Data(0,this.timescaleAudio,this.timescaleVideo, this.audioHeader, this.videoHeader, nil, nil)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("create moov failed:%s", err.Error()))
 		return

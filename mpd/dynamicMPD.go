@@ -2,21 +2,22 @@ package mpd
 
 import (
 	"container/list"
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/panda-media/muxer-fmp4/utils"
 	"strconv"
 	"sync"
-	"encoding/xml"
 	"time"
-	"github.com/panda-media/muxer-fmp4/utils"
 )
-const(
 
-	IdAudio="audio0"
-	IdVideo="video0"
-	MillInSec=1000
-	MillInSecFloat=1000.0
+const (
+	IdAudio        = "audio0"
+	IdVideo        = "video0"
+	MillInSec      = 1000
+	MillInSecFloat = 1000.0
 )
+
 type videoInfo struct {
 	timeScale int
 	width     int
@@ -41,19 +42,19 @@ type segmentTimeData struct {
 }
 
 type MPDDynamic struct {
-	minBufferMS                int
-	maxSliceCount              int
-	vide                       *videoInfo
-	audi                       *audioInfo
-	videoData                  map[int64]*segmentTimeData
-	videoKeys                  *list.List
-	lastVideoTimestamp         int64
-	muxVideo                   sync.RWMutex
-	audioData                  map[int64]*segmentTimeData
-	audioKeys                  *list.List
-	lastAudioTimestamp         int64
-	muxAudio                   sync.RWMutex
-	mediaDataStartTime			time.Time
+	minBufferMS        int
+	maxSliceCount      int
+	vide               *videoInfo
+	audi               *audioInfo
+	videoData          map[int64]*segmentTimeData
+	videoKeys          *list.List
+	lastVideoTimestamp int64
+	muxVideo           sync.RWMutex
+	audioData          map[int64]*segmentTimeData
+	audioKeys          *list.List
+	lastAudioTimestamp int64
+	muxAudio           sync.RWMutex
+	mediaDataStartTime time.Time
 }
 
 func NewDynamicMPDCreater(minBufferDurationMS, maxSliceCount int) (mpd *MPDDynamic) {
@@ -92,8 +93,8 @@ func (this *MPDDynamic) generatePTime(year, month, day, hour, minute, sec, mill 
 	return
 }
 
-func (this *MPDDynamic)generatePTimeMillSec(mill int)(pt string){
-	pt="PT"+fmt.Sprintf("%.3f", float32(float32(mill)/MillInSecFloat)) + "S"
+func (this *MPDDynamic) generatePTimeMillSec(mill int) (pt string) {
+	pt = "PT" + fmt.Sprintf("%.3f", float32(float32(mill)/MillInSecFloat)) + "S"
 	return
 }
 
@@ -107,7 +108,7 @@ func (this *MPDDynamic) SetVideoInfo(timescale, width, height, frameRate, bandwi
 		frameRate,
 		bandwidth,
 		codecs}
-	this.mediaDataStartTime=time.Now().UTC()
+	this.mediaDataStartTime = time.Now().UTC()
 	return
 }
 
@@ -131,7 +132,7 @@ func (this *MPDDynamic) SetAudioBitrate(bitrate int) {
 	this.audi.bandwidth = bitrate
 }
 
-func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (lastTimestamp int64,duration int,err error) {
+func (this *MPDDynamic) AddVideoSlice(duration int, data []byte) (lastTimestamp int64, err error) {
 	if nil == this.vide {
 		err = errors.New("video info not seted")
 		return
@@ -140,13 +141,12 @@ func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (lastTimestam
 	defer this.muxVideo.Unlock()
 	segment_time_data := &segmentTimeData{}
 	segment_time_data.t = this.lastVideoTimestamp
-	segment_time_data.d = int(int64(durationMS * this.vide.timeScale) / MillInSec)
+	segment_time_data.d = duration
 	segment_time_data.data = data
 	this.videoData[this.lastVideoTimestamp] = segment_time_data
 	this.videoKeys.PushBack(this.lastVideoTimestamp)
 
-	duration=segment_time_data.d
-	lastTimestamp=this.lastVideoTimestamp
+	lastTimestamp = this.lastVideoTimestamp
 	this.lastVideoTimestamp += int64(segment_time_data.d)
 	if this.videoKeys.Len() > this.maxSliceCount {
 		k := this.videoKeys.Front().Value.(int64)
@@ -156,7 +156,7 @@ func (this *MPDDynamic) AddVideoSlice(durationMS int, data []byte) (lastTimestam
 	return
 }
 
-func (this *MPDDynamic) AddAudioSlice(frameCount int, data []byte) (lastTimestamp int64,duration int,err error) {
+func (this *MPDDynamic) AddAudioSlice(duration int, data []byte) (lastTimestamp int64, err error) {
 	if nil == this.audi {
 		err = errors.New("audio info not seted")
 		return
@@ -165,13 +165,13 @@ func (this *MPDDynamic) AddAudioSlice(frameCount int, data []byte) (lastTimestam
 	defer this.muxAudio.Unlock()
 	segment_time_data := &segmentTimeData{}
 	segment_time_data.t = this.lastAudioTimestamp
-	segment_time_data.d = this.audi.sampelSize * frameCount
+	segment_time_data.d = duration
 	segment_time_data.data = data
 	this.audioData[this.lastAudioTimestamp] = segment_time_data
 	this.audioKeys.PushBack(this.lastAudioTimestamp)
 
-	lastTimestamp=this.lastAudioTimestamp
-	duration=segment_time_data.d
+	lastTimestamp = this.lastAudioTimestamp
+
 	this.lastAudioTimestamp += int64(segment_time_data.d)
 	if this.audioKeys.Len() > this.maxSliceCount {
 		k := this.audioKeys.Front().Value.(int64)
@@ -205,169 +205,167 @@ func (this *MPDDynamic) GetAudioSlice(timestamp int64) (data []byte, err error) 
 	return
 }
 
-func (this *MPDDynamic)GetMPDXML()(data []byte,err error){
-	if this.vide==nil&&this.audi==nil{
-		return nil,errors.New("not inited")
+func (this *MPDDynamic) GetMPDXML() (data []byte, err error) {
+	if this.vide == nil && this.audi == nil {
+		return nil, errors.New("not inited")
 	}
-	mpd:=&MPD{}
+	mpd := &MPD{}
 	this.muxVideo.RLock()
 	defer this.muxVideo.RUnlock()
 	this.mpdAttrs(mpd)
-	mpd.Period=make([]PeriodXML,1)
-	mpd.Period[0].Id="0"
-	mpd.Period[0].Start="PT0.0S"
+	mpd.Period = make([]PeriodXML, 1)
+	mpd.Period[0].Id = "0"
+	mpd.Period[0].Start = "PT0.0S"
 
-	mpd.Period[0].AdaptationSet=make([]AdaptationSetXML,0)
-	if this.vide!=nil{
+	mpd.Period[0].AdaptationSet = make([]AdaptationSetXML, 0)
+	if this.vide != nil {
 		this.adaptationSetVideo(&mpd.Period[0])
 	}
-	if this.audi!=nil{
+	if this.audi != nil {
 		this.adaptationSetAudio(&mpd.Period[0])
 	}
 
-	body,err:=xml.Marshal(mpd)
-	if err==nil{
-		header:=`<?xml version="1.0" encoding="UTF-8"?>`+ "\n"
-		body=utils.FormatXML(body)
-		data=make([]byte,len(body)+len(header))
-		copy(data,[]byte(header))
-		copy(data[len([]byte(header)):],body)
+	body, err := xml.Marshal(mpd)
+	if err == nil {
+		header := `<?xml version="1.0" encoding="UTF-8"?>` + "\n"
+		body = utils.FormatXML(body)
+		data = make([]byte, len(body)+len(header))
+		copy(data, []byte(header))
+		copy(data[len([]byte(header)):], body)
 	}
 	return
 }
 
-func (this *MPDDynamic)mpdAttrs(mpd *MPD){
-	mpd.Xmlns=MPDXMLNS
-	mpd.Profiles=ProfileISOLive
-	mpd.Type=dynamicMPD
-	mpd.Xmlns_xlink="http://www.w3.org/1999/xlink"
-	mpd.Xmlns_xsi="http://www.w3.org/2001/XMLSchema-instance"
-	mpd.Xsi_schemaLocation="urn:mpeg:DASH:schema:MPD:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd"
-	timestamp:=time.Now().UTC()
+func (this *MPDDynamic) mpdAttrs(mpd *MPD) {
+	mpd.Xmlns = MPDXMLNS
+	mpd.Profiles = ProfileISOLive
+	mpd.Type = dynamicMPD
+	mpd.Xmlns_xlink = "http://www.w3.org/1999/xlink"
+	mpd.Xmlns_xsi = "http://www.w3.org/2001/XMLSchema-instance"
+	mpd.Xsi_schemaLocation = "urn:mpeg:DASH:schema:MPD:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd"
+	timestamp := time.Now().UTC()
 
-	mpd.PublishTime=timestamp.Format("2006-01-02T15:04:05.000Z")
+	mpd.PublishTime = timestamp.Format("2006-01-02T15:04:05.000Z")
 
-	mpd.AvailabilityStartTime=func()(availablityStartTime string){
-		availablityStartTime=this.mediaDataStartTime.Format("2006-01-02T15:04:05.000Z")
+	mpd.AvailabilityStartTime = func() (availablityStartTime string) {
+		availablityStartTime = this.mediaDataStartTime.Format("2006-01-02T15:04:05.000Z")
 		return
 	}()
-	mpd.MinimumUpdatePeriod=this.generatePTimeMillSec(this.minBufferMS)
-	minBufferTime:=0xffffffff
-	for _,e:= range this.videoData{
-		if minBufferTime>e.d{
-			minBufferTime=e.d
+	mpd.MinimumUpdatePeriod = this.generatePTimeMillSec(this.minBufferMS)
+	minBufferTime := 0xffffffff
+	for _, e := range this.videoData {
+		if minBufferTime > e.d {
+			minBufferTime = e.d
 		}
 	}
-	minBufferTime=minBufferTime*MillInSec/this.vide.timeScale
-	mpd.MinBufferTime=this.generatePTimeMillSec(minBufferTime)
+	minBufferTime = minBufferTime * MillInSec / this.vide.timeScale
+	mpd.MinBufferTime = this.generatePTimeMillSec(minBufferTime)
 
-
-	mpd.SuggestedPresentationDelay= func() (suggestedPresentationDelay string){
-		delayCounts:=this.maxSliceCount/3
-		delay:=0
-		if this.videoKeys.Len()>delayCounts{
-			e:=this.videoKeys.Front()
-			for i:=0;i<delayCounts;i++{
-				delay+=this.videoData[e.Value.(int64)].d
+	mpd.SuggestedPresentationDelay = func() (suggestedPresentationDelay string) {
+		delayCounts := this.maxSliceCount / 3
+		delay := 0
+		if this.videoKeys.Len() > delayCounts {
+			e := this.videoKeys.Front()
+			for i := 0; i < delayCounts; i++ {
+				delay += this.videoData[e.Value.(int64)].d
 			}
 		}
-		delay=0
-		suggestedPresentationDelay=this.generatePTimeMillSec(delay*MillInSec/this.vide.timeScale)
+		delay = 0
+		suggestedPresentationDelay = this.generatePTimeMillSec(delay * MillInSec / this.vide.timeScale)
 		return
 	}()
 }
 
-func (this *MPDDynamic)adaptationSetVideo(period *PeriodXML){
-	ada:=AdaptationSetXML{}
-	ada.ContentType="video"
-	ada.Id="0"
-	ada.MimeType="video/mp4"
+func (this *MPDDynamic) adaptationSetVideo(period *PeriodXML) {
+	ada := AdaptationSetXML{}
+	ada.ContentType = "video"
+	ada.Id = "0"
+	ada.MimeType = "video/mp4"
 	//ada.Codecs=this.vide.codecs
-	ada.Width=this.vide.width
-	ada.Height=this.vide.height
-	ada.FrameRate=this.vide.frameRate
-	ada.SegmentAlignment=true
-	ada.StartWithSAP=1
-	ada.SubsegmentAlignment=true
-	ada.SubsegmentStartsWithSAP=1
+	ada.Width = this.vide.width
+	ada.Height = this.vide.height
+	ada.FrameRate = this.vide.frameRate
+	ada.SegmentAlignment = true
+	ada.StartWithSAP = 1
+	ada.SubsegmentAlignment = true
+	ada.SubsegmentStartsWithSAP = 1
 
-	role:=&RoleXML{}
-	role.SchemeIdUri="urn:mpeg:dash:role:2011"
-	role.Value="main"
-	ada.Role=role
+	role := &RoleXML{}
+	role.SchemeIdUri = "urn:mpeg:dash:role:2011"
+	role.Value = "main"
+	ada.Role = role
 
-	ada.Representation=make([]RepresentationXML,0)
-	representation:=RepresentationXML{}
-	representation.Bandwidth=this.vide.bitrate
-	representation.Codecs=this.vide.codecs
-	representation.Id=IdVideo
-	ada.Representation=append(ada.Representation, representation)
+	ada.Representation = make([]RepresentationXML, 0)
+	representation := RepresentationXML{}
+	representation.Bandwidth = this.vide.bitrate
+	representation.Codecs = this.vide.codecs
+	representation.Id = IdVideo
+	ada.Representation = append(ada.Representation, representation)
 
-	ada.SegmentTemplate.TimeScale=this.vide.timeScale
-	ada.SegmentTemplate.Media="video_$RepresentationID$_$Time$_mp4.m4s"
-	ada.SegmentTemplate.Initialization="video_$RepresentationID$_init_mp4.m4s"
-	segmentTimeLine:=&SegmentTimelineXML{}
-	segmentTimeLine.S=make([]SegmentTimelineDesc,this.videoKeys.Len())
-	for e,idx:=this.videoKeys.Front(),0;e!=nil;e=e.Next(){
-		k:=e.Value.(int64)
-		segmentTimeLine.S[idx].T=int(this.videoData[k].t&0xffffffff)
-		segmentTimeLine.S[idx].D=this.videoData[k].d
+	ada.SegmentTemplate.TimeScale = this.vide.timeScale
+	ada.SegmentTemplate.Media = "video_$RepresentationID$_$Time$_mp4.m4s"
+	ada.SegmentTemplate.Initialization = "video_$RepresentationID$_init_mp4.m4s"
+	segmentTimeLine := &SegmentTimelineXML{}
+	segmentTimeLine.S = make([]SegmentTimelineDesc, this.videoKeys.Len())
+	for e, idx := this.videoKeys.Front(), 0; e != nil; e = e.Next() {
+		k := e.Value.(int64)
+		segmentTimeLine.S[idx].T = int(this.videoData[k].t & 0xffffffff)
+		segmentTimeLine.S[idx].D = this.videoData[k].d
 		idx++
 	}
-	ada.SegmentTemplate.SegmentTimeline=segmentTimeLine
+	ada.SegmentTemplate.SegmentTimeline = segmentTimeLine
 
-	period.AdaptationSet=append(period.AdaptationSet,ada)
+	period.AdaptationSet = append(period.AdaptationSet, ada)
 }
 
-func (this *MPDDynamic)adaptationSetAudio(period *PeriodXML){
+func (this *MPDDynamic) adaptationSetAudio(period *PeriodXML) {
 	this.muxAudio.RLock()
 	defer this.muxAudio.RUnlock()
-	ada:=AdaptationSetXML{}
-	ada.ContentType="audio"
-	ada.Id="1"
-	ada.MimeType="audio/mp4"
+	ada := AdaptationSetXML{}
+	ada.ContentType = "audio"
+	ada.Id = "1"
+	ada.MimeType = "audio/mp4"
 	//ada.Codecs=this.audi.codecs
-	ada.Lang="eng"
-	ada.SegmentAlignment=true
-	ada.StartWithSAP=1
-	ada.SubsegmentAlignment=true
-	ada.SubsegmentStartsWithSAP=1
+	ada.Lang = "eng"
+	ada.SegmentAlignment = true
+	ada.StartWithSAP = 1
+	ada.SubsegmentAlignment = true
+	ada.SubsegmentStartsWithSAP = 1
 
-	ada.Representation=make([]RepresentationXML,0)
-	representation:=RepresentationXML{}
-	representation.Bandwidth=this.audi.bandwidth
-	representation.Id=IdAudio
-	representation.Codecs=this.audi.codecs
-	representation.AudioSamplingRate=this.audi.sampleRate
-	ada.Representation=append(ada.Representation, representation)
+	ada.Representation = make([]RepresentationXML, 0)
+	representation := RepresentationXML{}
+	representation.Bandwidth = this.audi.bandwidth
+	representation.Id = IdAudio
+	representation.Codecs = this.audi.codecs
+	representation.AudioSamplingRate = this.audi.sampleRate
+	ada.Representation = append(ada.Representation, representation)
 
+	audioChannelConfiguration := &AudioChannelConfigurationXML{}
+	audioChannelConfiguration.Value = this.audi.channel
+	audioChannelConfiguration.SchemeIdUri = SchemeIdUri
+	ada.AudioChannelConfiguration = audioChannelConfiguration
 
-	audioChannelConfiguration:=&AudioChannelConfigurationXML{}
-	audioChannelConfiguration.Value=this.audi.channel
-	audioChannelConfiguration.SchemeIdUri=SchemeIdUri
-	ada.AudioChannelConfiguration=audioChannelConfiguration
+	role := &RoleXML{}
+	role.SchemeIdUri = "urn:mpeg:dash:role:2011"
+	role.Value = "main"
+	ada.Role = role
 
-	role:=&RoleXML{}
-	role.SchemeIdUri="urn:mpeg:dash:role:2011"
-	role.Value="main"
-	ada.Role=role
-
-	ada.SegmentTemplate.TimeScale=this.audi.sampleRate
-	ada.SegmentTemplate.Media="audio_$RepresentationID$_$Time$_mp4.m4s"
-	ada.SegmentTemplate.Initialization="audio_$RepresentationID$_init_mp4.m4s"
-	segmentTimeLine:=&SegmentTimelineXML{}
-	segmentTimeLine.S=make([]SegmentTimelineDesc,this.audioKeys.Len())
-	for e,idx:=this.audioKeys.Front(),0;e!=nil;e=e.Next(){
-		k:=e.Value.(int64)
-		v:=this.audioData[k]
-		if nil==v{
+	ada.SegmentTemplate.TimeScale = this.audi.sampleRate
+	ada.SegmentTemplate.Media = "audio_$RepresentationID$_$Time$_mp4.m4s"
+	ada.SegmentTemplate.Initialization = "audio_$RepresentationID$_init_mp4.m4s"
+	segmentTimeLine := &SegmentTimelineXML{}
+	segmentTimeLine.S = make([]SegmentTimelineDesc, this.audioKeys.Len())
+	for e, idx := this.audioKeys.Front(), 0; e != nil; e = e.Next() {
+		k := e.Value.(int64)
+		v := this.audioData[k]
+		if nil == v {
 			break
 		}
-		segmentTimeLine.S[idx].T=int(v.t&0xffffffff)
-		segmentTimeLine.S[idx].D=v.d
+		segmentTimeLine.S[idx].T = int(v.t & 0xffffffff)
+		segmentTimeLine.S[idx].D = v.d
 		idx++
 	}
-	ada.SegmentTemplate.SegmentTimeline=segmentTimeLine
+	ada.SegmentTemplate.SegmentTimeline = segmentTimeLine
 
-	period.AdaptationSet=append(period.AdaptationSet,ada)
+	period.AdaptationSet = append(period.AdaptationSet, ada)
 }

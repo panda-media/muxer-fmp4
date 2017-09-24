@@ -25,7 +25,7 @@ type slice_header struct {
 
 const (
 	H264_PICTURE_TYPE_P = iota
-	H264_PICTURE_TYPE_B//double
+	H264_PICTURE_TYPE_B //double
 	H264_PICTURE_TYPE_I
 	H264_PICTURE_TYPE_SP
 	H264_PICTURE_TYPE_SI

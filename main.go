@@ -5,9 +5,8 @@ import (
 	"log"
 )
 
-
 func main() {
 	log.SetFlags(log.Lshortfile)
-	example.FlvFileToFMP4("muxer-fmp4/111.flv")
+	example.FlvFileToFMP4("111.flv")
 	return
 }

@@ -22,14 +22,18 @@ type FMP4Muxer struct {
 	video_data      *bytes.Buffer
 	moof_mdat_buf   *bytes.Buffer
 	sidx            *commonBoxes.SIDX
-	timescale       uint32
+	timescaleSIDX   uint32
 	timescaleAudio  uint32
 	timescaleVideo  uint32
-	timeBeginMS     int64
-	timeLastMS      int64
-	timeLastVideo   int64
-	timeLastAudio   int64
-	timeSlicedMS    int64
-	timeSidxMS      int64
+
+	timeBeginVideo int64
+	timeNowVideo int64
+	timeBeginAudio int64
+	timeNowAudio int64
+
+	timeSlicedAudio int64//segment by video
+	timeSidxAudio   int64//flush for sidx
+	timeSlicedVideo int64//segment by key frame
+	timeSidxVideo   int64//fluse for sidx
 	mdat_size       int
 }

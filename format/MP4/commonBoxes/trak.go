@@ -4,7 +4,7 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
 )
 
-func trakBox(packet *AVPacket.MediaPacket, arrays *MOOV_ARRAYS, timestamp, duration uint64) (box *MP4Box, err error) {
+func trakBox(packet *AVPacket.MediaPacket, arrays *MOOV_ARRAYS, timestamp, duration uint64,timescale uint32) (box *MP4Box, err error) {
 	box, err = NewMP4Box("trak")
 	if err != nil {
 		return
@@ -34,15 +34,13 @@ func trakBox(packet *AVPacket.MediaPacket, arrays *MOOV_ARRAYS, timestamp, durat
 	}
 	box.PushBox(tkhd)
 	//mdia
-	var timeScale uint32
-	timeScale = VIDE_TIME_SCALE
-	if AVPacket.AV_PACKET_TYPE_AUDIO == packet.PacketType {
-		timeScale, _, err = GetAudioSampleRateSampleSize(packet)
-		if err != nil {
-			return
-		}
-	}
-	mdia, err := mdiaBox(packet, arrays, timestamp, timeScale)
+	//if AVPacket.AV_PACKET_TYPE_AUDIO == packet.PacketType {
+	//	timeScale, _, err = GetAudioSampleRateSampleSize(packet)
+	//	if err != nil {
+	//		return
+	//	}
+	//}
+	mdia, err := mdiaBox(packet, arrays, timestamp, timescale)
 	if err != nil {
 		return
 	}

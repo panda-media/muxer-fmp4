@@ -1,14 +1,13 @@
 package example
 
 import (
-	"os"
 	"log"
+	"os"
 )
 
 /*
 this code write for imitate h264 and aac stream from FLV file
 */
-
 
 const (
 	FLV_TAG_Audio      = 8
@@ -110,7 +109,6 @@ func (this *FlvTag) Copy() (dst *FlvTag) {
 	}
 	return
 }
-
 
 type FlvFileReader struct {
 	fp *os.File

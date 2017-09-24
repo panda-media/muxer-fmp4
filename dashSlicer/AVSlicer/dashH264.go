@@ -5,32 +5,27 @@ import (
 	"fmt"
 	"github.com/panda-media/muxer-fmp4/codec/H264"
 	"github.com/panda-media/muxer-fmp4/format/AVPacket"
-	"errors"
 )
-
 
 type SlicerH264 struct {
 	sps      []byte
 	pps      []byte
 	sei      []byte
-	spsext   []byte
+	sps_ext  []byte
 	avcGeted bool
-	dp_datas *list.List
-	nalTimer H264.H264TimeCalculator
+	dp_data  *list.List
 	width    int
 	height   int
 	fps      int
-	custom_time bool
 	codec    string
 }
 
-func (this *SlicerH264)Init(custom_time bool,fps int){
-	this.custom_time=custom_time
-	this.fps=fps
+func (this *SlicerH264) Init(fps int) {
+	this.fps = fps
 }
 
-func (this *SlicerH264) AddNals(data []byte,timestamp int64) (tags *list.List,err error) {
-	nals := this.separateNalus(data)
+func (this *SlicerH264) AddNals(data []byte, timestamp int64) (tags *list.List, err error) {
+	nals := this.separateNals(data)
 	if nals == nil || nals.Len() == 0 {
 		return
 	}
@@ -43,7 +38,7 @@ func (this *SlicerH264) AddNals(data []byte,timestamp int64) (tags *list.List,er
 			continue
 		}
 		var tag *AVPacket.MediaPacket
-		tag ,err= this.AddNal(nal,timestamp)
+		tag, err = this.AddNal(nal, timestamp)
 		if nil != tag {
 			tags.PushBack(tag)
 		}
@@ -51,76 +46,62 @@ func (this *SlicerH264) AddNals(data []byte,timestamp int64) (tags *list.List,er
 	return
 }
 
-func (this *SlicerH264)AddNal(nal []byte,timestamp int64)(tag *AVPacket.MediaPacket,err error){
+func (this *SlicerH264) AddNal(nal []byte, timestamp int64) (tag *AVPacket.MediaPacket, err error) {
 	nalType := nal[0] & 0x1f
 	switch nalType {
 	case H264.NAL_SPS:
 		this.sps = make([]byte, len(nal))
 		copy(this.sps, nal)
-		var fps int
-		this.width, this.height, fps,  _, _,_ = H264.DecodeSPS(this.sps)
-
-		if fps<=0{
-			if this.fps<=0{
-				err=errors.New("sps  timing_info not found")
-				return
-			}
-		}else{
-			if false==this.custom_time{
-				this.fps=fps
-			}
-		}
-
+		this.width, this.height, _, _, _, _ = H264.DecodeSPS(this.sps)
 		this.codec = fmt.Sprintf("avc1.%02x%02x%02x", int(this.sps[1]), int(this.sps[2]), int(this.sps[3]))
 	case H264.NAL_PPS:
 		this.pps = make([]byte, len(nal))
 		copy(this.pps, nal)
-		if false==this.avcGeted{
-			tag = this.createAVCTag()
+		if false == this.avcGeted {
+			tag = this.createAVCTag(timestamp)
 			if nil == tag {
 				break
 			}
-			this.avcGeted=true
+			this.avcGeted = true
 		}
 	case H264.NAL_SEI:
 		this.sei = make([]byte, len(nal))
 		copy(this.sei, nal)
 	case H264.NAL_SPS_EXT:
-		this.spsext = make([]byte, len(nal))
-		copy(this.spsext, nal)
+		this.sps_ext = make([]byte, len(nal))
+		copy(this.sps_ext, nal)
 	case H264.NAL_IDR_SLICE:
-		if this.avcGeted{
-			tag = this.createIdrSliceTag(nal,timestamp)
+		if this.avcGeted {
+			tag = this.createIdrAndSliceTag(nal, timestamp)
 		}
 	case H264.NAL_SLICE:
-		if this.avcGeted{
-			tag = this.createIdrSliceTag(nal,timestamp)
+		if this.avcGeted {
+			tag = this.createIdrAndSliceTag(nal, timestamp)
 		}
 	case H264.NAL_DPA:
-		this.dp_datas = list.New()
-		this.dp_datas.PushBack(nal)
+		this.dp_data = list.New()
+		this.dp_data.PushBack(nal)
 	case H264.NAL_DPB:
-		if nil == this.dp_datas || this.dp_datas.Len() != 1 {
+		if nil == this.dp_data || this.dp_data.Len() != 1 {
 			break
 		}
-		this.dp_datas.PushBack(nal)
+		this.dp_data.PushBack(nal)
 	case H264.NAL_DPC:
-		if nil == this.dp_datas || this.dp_datas.Len() != 1 {
+		if nil == this.dp_data || this.dp_data.Len() != 1 {
 			break
 		}
 		if this.avcGeted {
-			this.dp_datas.PushBack(nal)
-			tag = this.createDPTag(this.dp_datas,timestamp)
+			this.dp_data.PushBack(nal)
+			tag = this.createDPTag(this.dp_data, timestamp)
 		}
 	}
 	return
 }
 
-func (this *SlicerH264) separateNalus(data []byte) (nals *list.List) {
+func (this *SlicerH264) separateNals(data []byte) (nals *list.List) {
 	nalData, dataCur := this.getOneNal1(data[0:])
 	nals = list.New()
 	for nalData != nil && len(nalData) > 0 {
-
 		nals.PushBack(nalData)
 		if dataCur == len(data) {
 			break
@@ -181,18 +162,17 @@ func (this *SlicerH264) getOneNal1(data []byte) (nalData []byte, dataCur int) {
 	return
 }
 
-func (this *SlicerH264) createAVCTag() (tag *AVPacket.MediaPacket) {
+func (this *SlicerH264) createAVCTag(timestamp int64) (tag *AVPacket.MediaPacket) {
 	if nil == this.sps || nil == this.pps {
 		return nil
 	}
-	this.nalTimer.SetSPS(this.sps,this.fps)
 	avc := H264.AVCDecoderConfigurationRecord{}
 	avc.AddSPS(this.sps)
 	avc.AddPPS(this.pps)
-	avc.AddSPSExt(this.spsext)
+	avc.AddSPSExt(this.sps_ext)
 	tag = &AVPacket.MediaPacket{}
 	tag.PacketType = AVPacket.AV_PACKET_TYPE_VIDEO
-	tag.TimeStamp = 0
+	tag.TimeStamp = timestamp
 	avcData := avc.AVCData()
 	tag.Data = make([]byte, len(avcData)+5)
 	tag.Data[0] = 0x17
@@ -205,11 +185,10 @@ func (this *SlicerH264) createAVCTag() (tag *AVPacket.MediaPacket) {
 	return
 }
 
-func (this *SlicerH264) createIdrSliceTag(data []byte,timestamp int64) (tag *AVPacket.MediaPacket) {
+func (this *SlicerH264) createIdrAndSliceTag(data []byte, timestamp int64) (tag *AVPacket.MediaPacket) {
 	tag = &AVPacket.MediaPacket{}
 	tag.PacketType = AVPacket.AV_PACKET_TYPE_VIDEO
-	pts, cts, _ := this.nalTimer.AddNal(data,timestamp)
-	tag.TimeStamp = pts
+	tag.TimeStamp = timestamp
 
 	tag.Data = make([]byte, len(data)+5+4)
 
@@ -219,6 +198,7 @@ func (this *SlicerH264) createIdrSliceTag(data []byte,timestamp int64) (tag *AVP
 		tag.Data[0] = 0x27
 	}
 	tag.Data[1] = 1
+	cts := 0
 	tag.Data[2] = byte((cts >> 16) & 0xff)
 	tag.Data[3] = byte((cts >> 8) & 0xff)
 	tag.Data[4] = byte((cts >> 0) & 0xff)
@@ -231,14 +211,14 @@ func (this *SlicerH264) createIdrSliceTag(data []byte,timestamp int64) (tag *AVP
 	return
 }
 
-func (this *SlicerH264) createDPTag(data_dps *list.List,timestamp int64) (tag *AVPacket.MediaPacket) {
+func (this *SlicerH264) createDPTag(data_dps *list.List, timestamp int64) (tag *AVPacket.MediaPacket) {
 	if nil == data_dps || data_dps.Len() != 3 {
 		return
 	}
 	tag = &AVPacket.MediaPacket{}
 	tag.PacketType = AVPacket.AV_PACKET_TYPE_VIDEO
-	pts, cts, _ := this.nalTimer.AddNal(data_dps.Front().Value.([]byte),timestamp)
-	tag.TimeStamp = pts
+
+	tag.TimeStamp = timestamp
 	datasize := 5
 	for e := data_dps.Front(); e != nil; e = e.Next() {
 		datasize += len(e.Value.([]byte)) + 4
@@ -246,6 +226,7 @@ func (this *SlicerH264) createDPTag(data_dps *list.List,timestamp int64) (tag *A
 	tag.Data = make([]byte, datasize)
 	tag.Data[0] = 0x27
 	tag.Data[1] = 1
+	cts := 0
 	tag.Data[2] = byte((cts >> 16) & 0xff)
 	tag.Data[3] = byte((cts >> 8) & 0xff)
 	tag.Data[4] = byte((cts >> 0) & 0xff)
@@ -264,18 +245,18 @@ func (this *SlicerH264) createDPTag(data_dps *list.List,timestamp int64) (tag *A
 	return
 }
 
-func (this *SlicerH264) Width()int{
+func (this *SlicerH264) Width() int {
 	return this.width
 }
 
-func (this *SlicerH264)Height()int{
+func (this *SlicerH264) Height() int {
 	return this.height
 }
 
-func (this *SlicerH264)FPS()int{
+func (this *SlicerH264) FPS() int {
 	return this.fps
 }
 
-func (this *SlicerH264)Codec()string{
+func (this *SlicerH264) Codec() string {
 	return this.codec
 }

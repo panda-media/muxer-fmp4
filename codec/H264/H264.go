@@ -45,10 +45,10 @@ func DecodeSPS(sps_data []byte) (width, height, fps int, chroma_format_idc, bit_
 	sps_info := decodeSPS_RBSP(data[1:])
 	width = sps_info.width
 	height = sps_info.height
-	if sps_info.vui != nil&& sps_info.vui.timing_info_present_flag!=0&& sps_info.vui.time_scale!=0&& sps_info.vui.num_units_in_tick!=0 {
+	if sps_info.vui != nil && sps_info.vui.timing_info_present_flag != 0 && sps_info.vui.time_scale != 0 && sps_info.vui.num_units_in_tick != 0 {
 		fps = sps_info.vui.time_scale / (sps_info.vui.num_units_in_tick * 2)
-	}else{
-		fps=-1
+	} else {
+		fps = -1
 	}
 
 	chroma_format_idc = byte(sps_info.chroma_format_idc)
@@ -67,17 +67,17 @@ type H264TimeCalculator struct {
 	last_cnt_lsb     int
 	last_group_time  int64
 	next_group_time  int64
-	fps int64
+	fps              int64
 }
 
-func (this *H264TimeCalculator) SetSPS(sps []byte,fps int) {
+func (this *H264TimeCalculator) SetSPS(sps []byte, fps int) {
 	if this.sps != nil {
 		return
 	}
 	data := emulation_prevention(sps)
 	this.sps = decodeSPS_RBSP(data[1:])
-	this.frame_duration=int64(1000/fps)
-	this.fps=int64(fps)
+	this.frame_duration = int64(1000 / fps)
+	this.fps = int64(fps)
 	this.group_size = ((1 << uint(this.sps.log2_max_pic_order_cnt_lsb_minus4+4)) + 1) / 2
 	this.last_frame_group = 0
 	this.last_cnt_lsb = 0
@@ -86,11 +86,11 @@ func (this *H264TimeCalculator) SetSPS(sps []byte,fps int) {
 }
 
 func (this *H264TimeCalculator) getTimestamp() (timestamp int64) {
-	timestamp = this.frame_counter * 1000/this.fps
+	timestamp = this.frame_counter * 1000 / this.fps
 	return
 }
 
-func (this *H264TimeCalculator) AddNal(data []byte,timestamp int64) (pts, cts int64, bFrame bool) {
+func (this *H264TimeCalculator) AddNal(data []byte, timestamp int64) (pts, cts int64, bFrame bool) {
 	nalType := data[0] & 0x1f
 
 	if nalType == NAL_SLICE || nalType == NAL_DPA ||
@@ -104,8 +104,8 @@ func (this *H264TimeCalculator) AddNal(data []byte,timestamp int64) (pts, cts in
 			pts, cts = this.cnt_type_2(data)
 		}
 
-		if timestamp!=0{
-			pts=int64(timestamp)
+		if timestamp != 0 {
+			pts = int64(timestamp)
 		}
 		this.frame_counter++
 	} else {

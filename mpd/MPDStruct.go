@@ -94,7 +94,7 @@ type AdaptationSetXML struct {
 	SubsegmentStartsWithSAP   int                           `xml:"subsegmentStartsWithSAP,attr,omitempty"`
 	MimeType                  string                        `xml:"mimeType,attr"`
 	Codecs                    string                        `xml:"codecs,attr,omitempty"`
-	Role *RoleXML `xml:"Role,omitempty"`
+	Role                      *RoleXML                      `xml:"Role,omitempty"`
 	AudioChannelConfiguration *AudioChannelConfigurationXML `xml:"AudioChannelConfiguration,omitempty"`
 	SegmentTemplate           SegmentTemplateXML            `xml:"SegmentTemplate"`
 	Representation            []RepresentationXML           `xml:"Representation,omitempty"`
@@ -102,7 +102,7 @@ type AdaptationSetXML struct {
 
 type RoleXML struct {
 	SchemeIdUri string `xml:"schemeIdUri,attr"`
-	Value string `xml:"value,attr"`
+	Value       string `xml:"value,attr"`
 }
 
 type SegmentTemplateXML struct {
@@ -127,7 +127,7 @@ type SegmentTimelineDesc struct {
 
 type RepresentationXML struct {
 	Id                string `xml:"id,attr"`
-	Codecs                    string                        `xml:"codecs,attr,omitempty"`
+	Codecs            string `xml:"codecs,attr,omitempty"`
 	Bandwidth         int    `xml:"bandwidth,attr"`
 	Width             int    `xml:"width,attr,omitempty"`
 	Height            int    `xml:"height,attr,omitempty"`
