@@ -137,6 +137,10 @@ func (this *MPDDynamic) AddVideoSlice(duration int, data []byte) (lastTimestamp 
 		err = errors.New("video info not seted")
 		return
 	}
+	if duration<=0{
+		err=errors.New("invalid video segment data")
+		return
+	}
 	this.muxVideo.Lock()
 	defer this.muxVideo.Unlock()
 	segment_time_data := &segmentTimeData{}
@@ -159,6 +163,10 @@ func (this *MPDDynamic) AddVideoSlice(duration int, data []byte) (lastTimestamp 
 func (this *MPDDynamic) AddAudioSlice(duration int, data []byte) (lastTimestamp int64, err error) {
 	if nil == this.audi {
 		err = errors.New("audio info not seted")
+		return
+	}
+	if duration<=0{
+		err=errors.New("invalid audio segment data")
 		return
 	}
 	this.muxAudio.Lock()
@@ -212,6 +220,8 @@ func (this *MPDDynamic) GetMPDXML() (data []byte, err error) {
 	mpd := &MPD{}
 	this.muxVideo.RLock()
 	defer this.muxVideo.RUnlock()
+	this.muxAudio.RLock()
+	defer this.muxAudio.RUnlock()
 	this.mpdAttrs(mpd)
 	mpd.Period = make([]PeriodXML, 1)
 	mpd.Period[0].Id = "0"
@@ -251,14 +261,29 @@ func (this *MPDDynamic) mpdAttrs(mpd *MPD) {
 		availablityStartTime = this.mediaDataStartTime.Format("2006-01-02T15:04:05.000Z")
 		return
 	}()
-	mpd.MinimumUpdatePeriod = this.generatePTimeMillSec(this.minBufferMS)
-	minBufferTime := 0xffffffff
+
+	if this.videoKeys.Len()!=0{
+		this.videoBufferTime(mpd)
+	}else if this.audioKeys.Len()!=0{
+		this.audioBufferTime(mpd)
+	}
+}
+
+func (this *MPDDynamic)videoBufferTime(mpd *MPD){
+
+	minBufferTime := 0xfffffff
 	for _, e := range this.videoData {
 		if minBufferTime > e.d {
 			minBufferTime = e.d
 		}
 	}
 	minBufferTime = minBufferTime * MillInSec / this.vide.timeScale
+
+	if this.minBufferMS<minBufferTime/3{
+		mpd.MinimumUpdatePeriod=this.generatePTimeMillSec(minBufferTime/2)
+	}else{
+		mpd.MinimumUpdatePeriod=this.generatePTimeMillSec(this.minBufferMS)
+	}
 	mpd.MinBufferTime = this.generatePTimeMillSec(minBufferTime)
 
 	mpd.SuggestedPresentationDelay = func() (suggestedPresentationDelay string) {
@@ -274,6 +299,25 @@ func (this *MPDDynamic) mpdAttrs(mpd *MPD) {
 		suggestedPresentationDelay = this.generatePTimeMillSec(delay * MillInSec / this.vide.timeScale)
 		return
 	}()
+}
+
+func (this *MPDDynamic)audioBufferTime(mpd *MPD){
+	minBufferTime := 0xfffffff
+	for _, e := range this.audioData {
+		if minBufferTime > e.d {
+			minBufferTime = e.d
+		}
+	}
+	minBufferTime = minBufferTime * MillInSec / this.audi.timescale
+
+	if this.minBufferMS<minBufferTime/3{
+		mpd.MinimumUpdatePeriod=this.generatePTimeMillSec(minBufferTime/2)
+	}else{
+		mpd.MinimumUpdatePeriod=this.generatePTimeMillSec(this.minBufferMS)
+	}
+	mpd.MinBufferTime = this.generatePTimeMillSec(minBufferTime)
+
+	mpd.SuggestedPresentationDelay=this.generatePTimeMillSec(0)
 }
 
 func (this *MPDDynamic) adaptationSetVideo(period *PeriodXML) {
@@ -319,8 +363,6 @@ func (this *MPDDynamic) adaptationSetVideo(period *PeriodXML) {
 }
 
 func (this *MPDDynamic) adaptationSetAudio(period *PeriodXML) {
-	this.muxAudio.RLock()
-	defer this.muxAudio.RUnlock()
 	ada := AdaptationSetXML{}
 	ada.ContentType = "audio"
 	ada.Id = "1"

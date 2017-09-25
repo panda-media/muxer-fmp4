@@ -86,6 +86,9 @@ func (this *FMP4Muxer) Flush() (sidx, moof_mdats []byte, duration, bitrate int, 
 			err = errors.New("slice fmp4 in flush failed:" + err.Error())
 			return
 		}
+	}else{
+		err=errors.New("no media data to flush")
+		return
 	}
 	moof_mdats = this.moof_mdat_buf.Bytes()
 	sidx, err = commonBoxes.Box_sidx_data(this.sidx)

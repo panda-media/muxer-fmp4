@@ -13,6 +13,7 @@ type SlicerH264 struct {
 	sei      []byte
 	sps_ext  []byte
 	avcGeted bool
+	keyframed bool
 	dp_data  *list.List
 	width    int
 	height   int
@@ -46,6 +47,31 @@ func (this *SlicerH264) AddNals(data []byte, timestamp int64) (tags *list.List, 
 	return
 }
 
+func (this *SlicerH264)AddFrame(data []byte,timestamp int64,compositionTime int)(tags *list.List,err error){
+	nals:=this.getNalsbySize(data)
+	if nals==nil||nals.Len()==0{
+		return
+	}
+	tags=list.New()
+	for e := nals.Front(); e != nil; e = e.Next() {
+		nal := e.Value.([]byte)
+
+		zero := nal[0] >> 7
+		if 0 != zero {
+			continue
+		}
+		var tag *AVPacket.MediaPacket
+		tag, err = this.AddNal(nal, timestamp)
+		if nil != tag {
+			tag.Data[2]=byte((compositionTime>>16)&0xff)
+			tag.Data[3]=byte((compositionTime>>8)&0xff)
+			tag.Data[4]=byte((compositionTime>>0)&0xff)
+			tags.PushBack(tag)
+		}
+	}
+	return
+}
+
 func (this *SlicerH264) AddNal(nal []byte, timestamp int64) (tag *AVPacket.MediaPacket, err error) {
 	nalType := nal[0] & 0x1f
 	switch nalType {
@@ -73,9 +99,10 @@ func (this *SlicerH264) AddNal(nal []byte, timestamp int64) (tag *AVPacket.Media
 	case H264.NAL_IDR_SLICE:
 		if this.avcGeted {
 			tag = this.createIdrAndSliceTag(nal, timestamp)
+			this.keyframed=true
 		}
 	case H264.NAL_SLICE:
-		if this.avcGeted {
+		if this.keyframed {
 			tag = this.createIdrAndSliceTag(nal, timestamp)
 		}
 	case H264.NAL_DPA:
@@ -90,7 +117,7 @@ func (this *SlicerH264) AddNal(nal []byte, timestamp int64) (tag *AVPacket.Media
 		if nil == this.dp_data || this.dp_data.Len() != 1 {
 			break
 		}
-		if this.avcGeted {
+		if this.keyframed {
 			this.dp_data.PushBack(nal)
 			tag = this.createDPTag(this.dp_data, timestamp)
 		}
@@ -107,6 +134,21 @@ func (this *SlicerH264) separateNals(data []byte) (nals *list.List) {
 			break
 		}
 		nalData, dataCur = this.getOneNal1(data[dataCur:])
+	}
+	return
+}
+
+func (this *SlicerH264)getNalsbySize(data []byte)(nals *list.List){
+	nalCur:=0
+	nals=list.New()
+	for nalCur+4<len(data){
+		nalSize:=int(data[nalCur])<<24
+		nalSize|=int(data[nalCur+1])<<16
+		nalSize|=int(data[nalCur+2])<<8
+		nalSize|=int(data[nalCur+3])<<0
+		nalCur+=4
+		nals.PushBack(data[nalCur:nalCur+nalSize])
+		nalCur+=nalSize
 	}
 	return
 }

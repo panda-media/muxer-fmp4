@@ -61,7 +61,7 @@ func NEWSlicer(fps, videoTimescale,audioTimescale, minLengthMS, maxLengthMS, max
 	return
 }
 
-//add one or more nal
+//add nal,separate 0x 00 00 01 or 0x 00 00 00 01
 func (this *DASHSlicer) AddH264Nals(data []byte, timestamp int64) (err error) {
 	tags, err := this.h264Transfer.AddNals(data, timestamp)
 	if err != nil || tags == nil || tags.Len() == 0 {
@@ -69,6 +69,7 @@ func (this *DASHSlicer) AddH264Nals(data []byte, timestamp int64) (err error) {
 	}
 	for e := tags.Front(); e != nil; e = e.Next() {
 		tag := e.Value.(*AVPacket.MediaPacket)
+
 		err = this.appendH264Tag(tag)
 		if err != nil {
 			err = errors.New("AddH264Nals failed:" + err.Error())
@@ -78,17 +79,20 @@ func (this *DASHSlicer) AddH264Nals(data []byte, timestamp int64) (err error) {
 	return
 }
 
-//add one nal
-
-func (this *DASHSlicer) AddH264Frame(nal []byte, timestamp int64) (err error) {
-	tag, err := this.h264Transfer.AddNal(nal, timestamp)
-	if err != nil || nil == tag {
+//add nal,four bytes network byte order size+ nal data......
+func (this *DASHSlicer) AddH264Frame(nal []byte, timestamp int64,compositionTime int) (err error) {
+	tags,err:=this.h264Transfer.AddFrame(nal,timestamp,compositionTime)
+	if err != nil || tags == nil || tags.Len() == 0 {
 		return
 	}
-	err = this.appendH264Tag(tag)
-	if err != nil {
-		err = errors.New("AddH264Frame failed:" + err.Error())
-		return
+	for e := tags.Front(); e != nil; e = e.Next() {
+		tag := e.Value.(*AVPacket.MediaPacket)
+
+		err = this.appendH264Tag(tag)
+		if err != nil {
+			err = errors.New("AddH264Nals failed:" + err.Error())
+			return
+		}
 	}
 	return
 }
@@ -115,6 +119,9 @@ func (this *DASHSlicer) appendH264Tag(tag *AVPacket.MediaPacket) (err error) {
 		if this.needNewSegment(tag.TimeStamp) {
 			_, moofmdat, duration, bitrate, err := this.muxerV.Flush()
 			if err != nil {
+				return err
+			}
+			if duration==0{
 				return err
 			}
 			this.mpd.SetVideoBitrate(bitrate)
