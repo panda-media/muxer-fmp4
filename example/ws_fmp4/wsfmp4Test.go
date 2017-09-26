@@ -10,6 +10,7 @@ import (
 	"github.com/panda-media/muxer-fmp4/format/MP4"
 	"encoding/json"
 	"time"
+	"os"
 )
 
 type OPT_Play_Info struct {
@@ -242,4 +243,48 @@ func sendVideo(conn *websocket.Conn,data []byte)(err error){
 	copy(dataSend[1:],data)
 	err=conn.WriteMessage(websocket.BinaryMessage,dataSend)
 	return
+}
+
+func SaveSegment(idx string,count int){
+	data := NvrReadGopTime(idx)
+	sps:=data.SPS
+	pps:=data.PPS
+
+	//package sps pps into media tag
+	avc:=H264.AVCDecoderConfigurationRecord{}
+	avc.AddSPS(sps)
+	avc.AddPPS(pps)
+	avc_data:=avc.AVCData()
+	tag:=&AVPacket.MediaPacket{}
+	tag.PacketType=AVPacket.AV_PACKET_TYPE_VIDEO
+	tag.TimeStamp=0
+	tag.Data=make([]byte,len(avc_data)+5)
+	tag.Data[0] = 0x17
+	tag.Data[1] = 0
+	tag.Data[2] = 0
+	tag.Data[3] = 0
+	tag.Data[4] = 0
+	copy(tag.Data[5:], avc_data)
+	//send packet
+	fmp4:=MP4.NewMP4Muxer()
+	fmp4.SetVideoHeader(tag,uint32(data.TimeScaleVideo))
+	header,_:=fmp4.GetInitSegment()
+	fp,_:=os.Create("one/0.mp4")
+	fp.Write(header)
+	fp.Close()
+	ic:=0
+	for _, sample := range data.Samples {
+		if !sample.AUDIO {
+			if ic>count{
+				return
+			}
+			ic++
+			tag=createTag(sample)
+			fmp4.AddPacket(tag)
+			_,moofmdat,_,_,_:=fmp4.Flush()
+			fp,_=os.Create("one/"+strconv.Itoa(ic)+".mp4")
+			fp.Write(moofmdat)
+			fp.Close()
+		}
+	}
 }
