@@ -1,4 +1,4 @@
-package example
+package dash
 
 import (
 	"github.com/panda-media/muxer-fmp4/codec/H264"

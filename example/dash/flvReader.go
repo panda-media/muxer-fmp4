@@ -1,4 +1,4 @@
-package example
+package dash
 
 import (
 	"log"
@@ -134,7 +134,7 @@ func (this *FlvFileReader) GetNextTag() (tag *FlvTag, err error) {
 	}
 	tag = &FlvTag{}
 	tag.TagType = buf[0]
-	dataSize := (int(int(buf[1])<<16) | (int(buf[2]) << 8) | (int(buf[3])))
+	dataSize := int(int(buf[1])<<16) | (int(buf[2]) << 8) | (int(buf[3]))
 	tag.Timestamp = uint32(int(int(buf[7])<<24) | (int(buf[4]) << 16) | (int(buf[5]) << 8) | (int(buf[6])))
 
 	tag.Data = make([]byte, dataSize)
