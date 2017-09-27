@@ -155,11 +155,13 @@ func SendNvrMediaData(conn *websocket.Conn){
 	log.Println("video timescale:",data.TimeScaleVideo)
 	keyframed:=false
 	//just video data now
+	var lasttimestamp int64
 	for _, sample := range data.Samples {
 		//sample.Sync key frame
 		//sample.AUDIO audio frame
 		if !sample.AUDIO {
-			tag=createTag(sample)
+			tag=createTag(sample,lasttimestamp)
+			lasttimestamp=tag.TimeStamp
 			//duration:=int(sample.RtpDts)*1000/data.TimeScaleVideo
 			//log.Println(duration)
 			//time.Sleep(time.Duration(duration) *time.Millisecond)
@@ -187,6 +189,7 @@ func SendNvrMediaData(conn *websocket.Conn){
 					return
 				}
 				err=sendVideo(conn,seg)
+				log.Println("send idr")
 				if err!=nil{
 					log.Println(err.Error())
 					return
@@ -205,6 +208,7 @@ func SendNvrMediaData(conn *websocket.Conn){
 						log.Println(err.Error())
 						return
 					}
+					log.Println("send slice")
 				}
 			}
 		}
@@ -212,11 +216,10 @@ func SendNvrMediaData(conn *websocket.Conn){
 	}
 }
 
-func createTag(sample Frame)(tag *AVPacket.MediaPacket){
+func createTag(sample Frame,lasttimestamp int64)(tag *AVPacket.MediaPacket){
 	tag = &AVPacket.MediaPacket{}
 	tag.PacketType = AVPacket.AV_PACKET_TYPE_VIDEO
-	tag.TimeStamp = sample.RtpLts-sample.RtpTS
-
+	tag.TimeStamp = sample.RtpDts+lasttimestamp
 	tag.Data = make([]byte, len(*sample.Data)+5+4)
 	if sample.Sync{
 		tag.Data[0] = 0x17
@@ -269,20 +272,22 @@ func SaveSegment(idx string,count int){
 	fmp4:=MP4.NewMP4Muxer()
 	fmp4.SetVideoHeader(tag,uint32(data.TimeScaleVideo))
 	header,_:=fmp4.GetInitSegment()
-	fp,_:=os.Create("one/0.mp4")
+	fp,_:=os.Create("vide/0.mp4")
 	fp.Write(header)
 	fp.Close()
 	ic:=0
+	var lastTimestamp int64
 	for _, sample := range data.Samples {
 		if !sample.AUDIO {
 			if ic>count{
 				return
 			}
 			ic++
-			tag=createTag(sample)
+			tag=createTag(sample,lastTimestamp)
+			lastTimestamp=tag.TimeStamp
 			fmp4.AddPacket(tag)
 			_,moofmdat,_,_,_:=fmp4.Flush()
-			fp,_=os.Create("one/"+strconv.Itoa(ic)+".mp4")
+			fp,_=os.Create("vide/"+strconv.Itoa(ic)+".mp4")
 			fp.Write(moofmdat)
 			fp.Close()
 		}
